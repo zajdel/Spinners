@@ -102,10 +102,6 @@ im = ax.imshow(show_frames[0], aspect='equal')
 F = ax.scatter(x=[c[0] for c in centers], y=[c[1] for c in centers], s=240, facecolors=len(centers) * ["none"],
                color=len(centers) * ["blue"], picker=5)  # 5 points tolerance
 
-def find_darkest(x, y):
-    frames[]
-
-    return 1
 
 def on_press(event):
     # ind = event.ind[0]
@@ -115,11 +111,9 @@ def on_press(event):
     selected_points.add(
         (x, y))  # use set to avoid duplicates being stored. (use tuple because can hash.)
 
-    find_darkest(x, y)
-
-    mask = np.zeros((sdv.shape[0] + 2, sdv.shape[1] + 2), np.uint8)
-    cv2.floodFill(sdv.astype(np.uint8), mask, (int(round(event.xdata)), int(round(event.ydata))), 255, 40, 5, 8 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
-    plt.imshow(Image.fromarray(mask))
+    # mask = np.zeros((sdv.shape[0] + 2, sdv.shape[1] + 2), np.uint8)
+    # cv2.floodFill(sdv.astype(np.uint8), mask, (int(round(event.xdata)), int(round(event.ydata))), 255, 40, 5, 8 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
+    # plt.imshow(Image.fromarray(mask))
 
     # F._facecolors[ind,:] = (1, 0, 0, 0)
     # F._edgecolors[ind,:] = (1, 0, 0, 1)
