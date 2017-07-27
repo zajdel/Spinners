@@ -107,14 +107,14 @@ def on_press(event):
     if event.xdata and event.ydata:
         # ind = event.ind[0]
 
+        # Note that numpy arrays are accessed by [row (y), col(x)], but images are indexed by [x, y]
         x, y = int(round(event.xdata)), int(round(event.ydata))
-        print('You pressed', event.button, x, y, sdv[x, y])
+        print('You pressed', event.button, x, y, sdv[y, x])
 
         rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=0.5, edgecolor='r', facecolor='none')
         # Add the patch to the Axes
         ax.add_patch(rect)
 
-        # For some reason, the sdv array is inverted, so we need to access it with (y-coord, x-coord)
         correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
                                     if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
         if correct_x != x or correct_y != y:
