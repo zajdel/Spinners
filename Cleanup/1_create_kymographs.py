@@ -104,20 +104,34 @@ F = ax.scatter(x=[c[0] for c in centers], y=[c[1] for c in centers], s=240, face
 
 
 def on_press(event):
-    # ind = event.ind[0]
+    if event.xdata and event.ydata:
+        # ind = event.ind[0]
 
-    print('you pressed', event.button, event.xdata, event.ydata)
-    x, y = event.xdata, event.ydata
-    selected_points.add(
-        (x, y))  # use set to avoid duplicates being stored. (use tuple because can hash.)
+        x, y = int(round(event.xdata)), int(round(event.ydata))
+        print('You pressed', event.button, x, y, sdv[x, y])
 
-    # mask = np.zeros((sdv.shape[0] + 2, sdv.shape[1] + 2), np.uint8)
-    # cv2.floodFill(sdv.astype(np.uint8), mask, (int(round(event.xdata)), int(round(event.ydata))), 255, 40, 5, 8 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
-    # plt.imshow(Image.fromarray(mask))
+        rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=0.5, edgecolor='r', facecolor='none')
+        # Add the patch to the Axes
+        ax.add_patch(rect)
 
-    # F._facecolors[ind,:] = (1, 0, 0, 0)
-    # F._edgecolors[ind,:] = (1, 0, 0, 1)
-    fig.canvas.draw()
+        # For some reason, the sdv array is inverted, so we need to access it with (y-coord, x-coord)
+        correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
+                                    if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
+        if correct_x != x or correct_y != y:
+            area = patches.Rectangle((x - 2.5, y - 2.5), 5, 5, linewidth=0.5, edgecolor='r', facecolor='none')
+            correction = patches.Rectangle((correct_x - 0.5, correct_y - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
+            ax.add_patch(area)
+            ax.add_patch(correction)
+
+        selected_points.add(
+            (x, y) # use set to avoid duplicates being stored. (use tuple because can hash.)
+        )
+
+        # F._facecolors[ind,:] = (1, 0, 0, 0)
+        # F._edgecolors[ind,:] = (1, 0, 0, 1)
+        fig.canvas.draw()
+    else:
+        pass
 
 
 fig.canvas.mpl_connect('button_press_event', on_press)
@@ -151,6 +165,8 @@ w, l = 1.5, radius  # choose dimensions of rotating window
 mymask = np.array([[w, 0], [-w, 0], [-w, l], [w, l]])
 
 kymograph_images = []
+unprocessed_kymograph = np.array([])
+processed_kymograph = np.array([])
 for cell_num in range(num_selected_points):  #### NOTE: For now only 10 cells until we get things working! ####
     t0 = time.time()
     print 'Percent complete:', cell_num * 100. / num_selected_points, '%'

@@ -4,6 +4,7 @@ import numpy as np
 from math import radians, sin, cos, floor
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import trackpy as tp
 import scipy
 import pims
