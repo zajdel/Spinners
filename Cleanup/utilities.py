@@ -188,9 +188,9 @@ def angle_kym(ang, cell_num, frames, mymask, centers, Show=False):
         frame = frames[i].astype(np.uint8)
         box = np.int64(adj_ctr_mask(mymask, ang, cell_num, centers))  # this is the box rotated at ang deg.
         cv2.drawContours(frame, [box], 0, (0, 0, 0), 1)
-    if Show:
-        if i == 0 and ang == 0:  # shows the windows on top of 75th frame
-            show(frame)  # only showing filter do a 360 on first frame.
+        if Show:
+            if i == 0 and ang == 0:  # shows the windows on top of 75th frame
+                show(frame)  # only showing filter do a 360 on first frame.
         mask = np.zeros(frame.shape, np.uint8)
         cv2.drawContours(mask, [box], 0, 1, -1)  # cv2.drawContours(mask,[box],0,255,-1)
         ang_ar.append(cv2.mean(frame, mask=mask)[0])

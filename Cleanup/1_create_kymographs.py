@@ -17,13 +17,13 @@ bit_frames = []
 for i in range(len(frames)):
     bit_frames.append(convert_to_8bit(frames[i]))
 frames = np.array(bit_frames)
+
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^       Inverting Image          *^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
 # If we have BLACK cells on WHITE background, UNCOMMENT me!
 # frames = [np.invert(frame, dtype=np.int16) for frame in frames]
-
 
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^     Getting Donut Image        *^*^*^*^*^*^*^*^*^*^*^*^*^*^
@@ -91,7 +91,7 @@ centers = []
 # center = [x, y]
 # centers.append(center)
 
-selected_points = set()
+selected_points = {}
 
 #################################################################
 #################################################################
@@ -109,24 +109,24 @@ def on_press(event):
 
         # Note that numpy arrays are accessed by [row (y), col(x)], but images are indexed by [x, y]
         x, y = int(round(event.xdata)), int(round(event.ydata))
-        print('You pressed', event.button, x, y, sdv[y, x])
+        print('You pressed {0} at ({1}, {2}) with sdv value of {3}.'.format(event.button, x, y, sdv[y, x]))
 
-        rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=0.5, edgecolor='r', facecolor='none')
-        # Add the patch to the Axes
-        ax.add_patch(rect)
+        if (x, y) not in selected_points:
+            rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=0.5, edgecolor='r', facecolor='none')
+            selected_points[(x, y)] = rect
 
-        correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
-                                    if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
-        if correct_x != x or correct_y != y:
-            area = patches.Rectangle((x - 2.5, y - 2.5), 5, 5, linewidth=0.5, edgecolor='r', facecolor='none')
-            correction = patches.Rectangle((correct_x - 0.5, correct_y - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
-            ax.add_patch(area)
-            ax.add_patch(correction)
+            # Add the patch to the Axes
+            ax.add_patch(rect)
 
-        selected_points.add(
-            (x, y) # use set to avoid duplicates being stored. (use tuple because can hash.)
-        )
-
+            correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
+                                        if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
+            if correct_x != x or correct_y != y:
+                area = patches.Rectangle((x - 2.5, y - 2.5), 5, 5, linewidth=0.5, edgecolor='r', facecolor='none')
+                correction = patches.Rectangle((correct_x - 0.5, correct_y - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
+                ax.add_patch(area)
+                ax.add_patch(correction)
+        else:
+            selected_points.pop((x, y)).remove()
         # F._facecolors[ind,:] = (1, 0, 0, 0)
         # F._edgecolors[ind,:] = (1, 0, 0, 1)
         fig.canvas.draw()
@@ -150,6 +150,7 @@ anim = animation.FuncAnimation(fig, animate, init_func=init, interval=100)
 plt.show()
 
 # after closing plot:
+selected_points = selected_points.keys()
 selected_points = list(selected_points)
 selected_points = [list(c) for c in selected_points]
 
