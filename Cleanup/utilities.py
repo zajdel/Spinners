@@ -257,14 +257,82 @@ def compute_trace(processed_kymograph):
 
 
 def compute_trace2(processed_kymograph):
-    # extract 1D signal by going through the kymograph column by column
-    # and detecting maxima
+    # extract 1D signal by going through the kymograph column by column and detecting minima
     trace = []
-    for i in range(processed_kymograph.shape[1]):
-        trace.append(np.argmax(processed_kymograph[:, i]))
+
+    img = np.array(processed_kymograph[:, :300], dtype=np.uint8)
+    edges = cv2.Canny(img, 100, 255, apertureSize = 3)
+
+    edges += img
+
+    # min_line_length = 25
+    # lines = cv2.HoughLinesP(image=edges, rho=1, theta=np.pi / 180, threshold=70, lines=np.array([]),
+    #                         minLineLength=min_line_length, maxLineGap=10)
+    #
+    # a, b, c = lines.shape
+    # for i in range(a):
+    #     cv2.line(img, (lines[i][0][0], lines[i][0][1]), (lines[i][0][2], lines[i][0][3]), (100, 100, 100), 3)
+    # cv2.imshow('result', img)
+    # cv2.waitKey(0)
+
+    kernel = np.zeros((1, 1), np.uint8)
+    edges = cv2.erode(img, kernel, iterations=1)
+
+    removePepperNoise(edges)
+
+    plt.imshow(edges)
+
+    potential_points = {}
+    for i in range(edges.shape[1]):
+        # trace.append(np.argmax(processed_kymograph[:, i]))
+        potential_points[i] = [j for j in range(edges.shape[0]) if edges[j, i] > 200]
+        if potential_points[i]:
+            # mean = np.mean(potential_points[i])
+            # if len(trace) > 0 and trace[-1] < mean:
+            #     trace.append(max(potential_points[i]))
+            # elif len(trace) > 0 and trace[-1] > mean:
+            #     trace.append(min(potential_points[i]))
+            # else:
+            median_index = np.argsort(potential_points[i])[len(potential_points[i])//2]
+            if len(trace) > 0:
+                while trace[-1][1] > 1/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] > 45 and median_index < len(potential_points[i]) - 1:
+                    median_index += 1
+                while trace[-1][1] < 5/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] < -45 and median_index > 0:
+                    median_index -= 1
+            trace.append((i, potential_points[i][median_index]))
+            # if len(trace) > 0:
+            #     trace.append(min(potential_points[i], key=lambda p: abs(p - trace[-1])))
+            # else:
+            #     trace.append(np.median(potential_points[i]))
+    for i in range(1, len(trace) - 1):
+        y = trace[i][1]
+        if trace[i - 1][1] <= y >= trace[i + 1][1]:
+            while y < edges.shape[0] - 1 and y in potential_points[trace[i][0]]:
+                y += 1
+            trace[i] = (trace[i][0], y)
+        elif trace[i - 1][1] >= y <= trace[i + 1][1]:
+            while y > 0 and y in potential_points[trace[i][0]]:
+                y -= 1
+            trace[i] = (trace[i][0], y)
+    trace = [point[1] for point in trace]
+    # start_x = min(potential_points.keys())
+    # start_y = np.asscalar(np.median(potential_points[start_x]))
+    #
+    # find_next(potential_points, start_x, start_y)
 
     return np.asarray(trace)
 
+
+def removePepperNoise(img):
+    for y in range(1, len(img) - 1):
+        for x in range(1, len(img[0]) - 1):
+            is_black = [[False for j in range(3)] for i in range(3)]
+            for xdiff in range(-1, 2):
+                for ydiff in range(-1, 2):
+                    if img[y + ydiff, x + xdiff] < 50:
+                        is_black[ydiff + 1][xdiff + 1] = True
+            if sum([sum(row) for row in is_black]) >= 7:
+                img[y][x] = 0
 
 def smooth(a, WSZ):
     # smoothing function that emulates MATLAB smooth weighted average over windowsize = WSZ, odd integer
