@@ -265,16 +265,6 @@ def compute_trace2(processed_kymograph):
 
     edges += img
 
-    # min_line_length = 25
-    # lines = cv2.HoughLinesP(image=edges, rho=1, theta=np.pi / 180, threshold=70, lines=np.array([]),
-    #                         minLineLength=min_line_length, maxLineGap=10)
-    #
-    # a, b, c = lines.shape
-    # for i in range(a):
-    #     cv2.line(img, (lines[i][0][0], lines[i][0][1]), (lines[i][0][2], lines[i][0][3]), (100, 100, 100), 3)
-    # cv2.imshow('result', img)
-    # cv2.waitKey(0)
-
     kernel = np.zeros((1, 1), np.uint8)
     edges = cv2.erode(img, kernel, iterations=1)
 
@@ -284,15 +274,8 @@ def compute_trace2(processed_kymograph):
 
     potential_points = {}
     for i in range(edges.shape[1]):
-        # trace.append(np.argmax(processed_kymograph[:, i]))
         potential_points[i] = [j for j in range(edges.shape[0]) if edges[j, i] > 200]
         if potential_points[i]:
-            # mean = np.mean(potential_points[i])
-            # if len(trace) > 0 and trace[-1] < mean:
-            #     trace.append(max(potential_points[i]))
-            # elif len(trace) > 0 and trace[-1] > mean:
-            #     trace.append(min(potential_points[i]))
-            # else:
             median_index = np.argsort(potential_points[i])[len(potential_points[i])//2]
             if len(trace) > 0:
                 while trace[-1][1] > 1/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] > 45 and median_index < len(potential_points[i]) - 1:
@@ -300,10 +283,6 @@ def compute_trace2(processed_kymograph):
                 while trace[-1][1] < 5/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] < -45 and median_index > 0:
                     median_index -= 1
             trace.append((i, potential_points[i][median_index]))
-            # if len(trace) > 0:
-            #     trace.append(min(potential_points[i], key=lambda p: abs(p - trace[-1])))
-            # else:
-            #     trace.append(np.median(potential_points[i]))
     for i in range(1, len(trace) - 1):
         y = trace[i][1]
         if trace[i - 1][1] <= y >= trace[i + 1][1]:
@@ -315,10 +294,6 @@ def compute_trace2(processed_kymograph):
                 y -= 1
             trace[i] = (trace[i][0], y)
     trace = [point[1] for point in trace]
-    # start_x = min(potential_points.keys())
-    # start_y = np.asscalar(np.median(potential_points[start_x]))
-    #
-    # find_next(potential_points, start_x, start_y)
 
     return np.asarray(trace)
 
