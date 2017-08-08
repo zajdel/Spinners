@@ -278,18 +278,21 @@ def compute_trace2(processed_kymograph):
         if potential_points[i]:
             median_index = np.argsort(potential_points[i])[len(potential_points[i])//2]
             if len(trace) > 0:
-                while trace[-1][1] > 1/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] > 45 and median_index < len(potential_points[i]) - 1:
+                # TODO: Is this necessary?
+                # If previous point was in middle 2/3 of the graph, prevent jumping more than 5/8 of kymograph height (should reduce random jumps)
+                while trace[-1][1] > 1/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] > 5/8 * edges.shape[1] and median_index < len(potential_points[i]) - 1:
                     median_index += 1
-                while trace[-1][1] < 5/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] < -45 and median_index > 0:
+                while trace[-1][1] < 5/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] < 5/8 * edges.shape[1] and median_index > 0:
                     median_index -= 1
             trace.append((i, potential_points[i][median_index]))
     for i in range(1, len(trace) - 1):
         y = trace[i][1]
-        if trace[i - 1][1] <= y >= trace[i + 1][1]:
+        # If maxima/minima, extend up/down as far as possible
+        if trace[i - 1][1] <= y >= trace[i + 1][1] and trace[i - 2][1] <= y >= trace[i + 2][1]:
             while y < edges.shape[0] - 1 and y in potential_points[trace[i][0]]:
                 y += 1
             trace[i] = (trace[i][0], y)
-        elif trace[i - 1][1] >= y <= trace[i + 1][1]:
+        elif trace[i - 1][1] >= y <= trace[i + 1][1] and trace[i - 2][1] >= y <= trace[i + 2][1]:
             while y > 0 and y in potential_points[trace[i][0]]:
                 y -= 1
             trace[i] = (trace[i][0], y)
@@ -306,6 +309,7 @@ def removePepperNoise(img):
                 for ydiff in range(-1, 2):
                     if img[y + ydiff, x + xdiff] < 50:
                         is_black[ydiff + 1][xdiff + 1] = True
+            # If the 3x3 square surrounding (x, y) has more than 7 black points, set (x, y) to black
             if sum([sum(row) for row in is_black]) >= 7:
                 img[y][x] = 0
 
