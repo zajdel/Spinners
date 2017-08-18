@@ -91,6 +91,13 @@ im = ax.imshow(show_frames[0], aspect='equal')
 # Points not automatically chosen, click to remove
 selected_points = {}
 def on_press(event):
+    num_frames = 300
+    edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frames)]
+    plt.imshow(edges[0])
+    a1 = patches.Rectangle((71 - 0.5, 70 - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
+    a2 = patches.Rectangle((78 - 0.5, 77 - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
+    ax.add_patch(a1)
+    ax.add_patch(a2)
     if event.xdata and event.ydata:
         # Note that numpy arrays are accessed by [row (y), col(x)], but images are indexed by [x, y]
         x, y = int(round(event.xdata)), int(round(event.ydata))
@@ -152,6 +159,10 @@ num_selected_points = len(selected_points)
 
 num_frames = 300
 edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frames)]
+# kernel = np.ones((3, 3),np.uint8)
+# edges = [cv2.morphologyEx(edge, cv2.MORPH_CLOSE, kernel) for edge in edges]
+# edges = [edges[i] + frames[i] for i in range(len(edges))]
+# plt.imshow(edges[8])
 
 def find_furthest_points(point, frame):
     best_solution = {'p1': (0, 0), 'p2': (0, 0), 'distance': -sys.maxint - 1}
@@ -160,20 +171,34 @@ def find_furthest_points(point, frame):
     points.put(point)
     fringe = set()
     marked = set()
+    marked.add(point)
 
     while not points.empty():
         p = points.get()
-        marked.add(p)
+        p1 = (p[0] - 1, p[1])
+        p2 = (p[0] + 1, p[1])
+        p3 = (p[0], p[1] - 1)
+        p4 = (p[0], p[1] + 1)
+        potential = [p1, p2, p3, p4]
         if edges[frame][p[1], p[0]] == 255:
             fringe.add(p)
+            p5 = (p[0] - 1, p[1] - 1)
+            p6 = (p[0] - 1, p[1] + 1)
+            p7 = (p[0] + 1, p[1] - 1)
+            p8 = (p[0] + 1, p[1] + 1)
+            potential.extend([p5, p6, p7, p8])
+            for p in potential:
+                if p not in marked and edges[frame][p[1], p[0]] == 255:
+                    marked.add(p)
+                    points.put(p)
         else:
-            p1 = (p[0] - 1, p[1])
-            p2 = (p[0] + 1, p[1])
-            p3 = (p[0], p[1] - 1)
-            p4 = (p[0], p[1] + 1)
-            for p in [p1, p2, p3, p4]:
-                if p not in marked and point[0] - 6 <= p[0] <= point[0] + 6 and point[1] - 6 <= p[1] <= point[1] + 6:
-                    # print(len(marked))
+            for p in potential:
+                if (p not in marked
+                    and 0 <= p[0] < len(edges[frame][1])
+                    and 0 <= p[1] < len(edges[frame][0])
+                    and point[0] - 6 <= p[0] <= point[0] + 6
+                    and point[1] - 6 <= p[1] <= point[1] + 6):
+                    marked.add(p)
                     points.put(p)
 
     fringe = list(fringe)
