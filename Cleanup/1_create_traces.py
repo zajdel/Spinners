@@ -1,3 +1,4 @@
+from __future__ import division
 from utilities import *
 #  Ex. python 1_create_traces.py 1mM [Concentration] 2 [File No. in paths dictionary]
 # (See utilities.py)
@@ -9,6 +10,8 @@ fname = videos_dir + video_name
 # fname = argv[1]
 tifname = fname + '.tif'
 meta = metamorph_timestamps.get(tifname)
+ang_chunks = 72
+max_length = 4
 raw_frames = pims.TiffStack(tifname, as_grey=False)
 frames = [np.fromstring(f.data, dtype=np.int16) for f in raw_frames]  # int16 may have to change depending on dtype
 frames = [np.reshape(f, (-1, raw_frames[0].shape[0], raw_frames[0].shape[1]))[0] for f in frames]
@@ -91,13 +94,6 @@ im = ax.imshow(show_frames[0], aspect='equal')
 # Points not automatically chosen, click to remove
 selected_points = {}
 def on_press(event):
-    num_frames = 300
-    edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frames)]
-    plt.imshow(edges[0])
-    a1 = patches.Rectangle((71 - 0.5, 70 - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
-    a2 = patches.Rectangle((78 - 0.5, 77 - 0.5), 1, 1, linewidth=0.5, edgecolor='g', facecolor='none')
-    ax.add_patch(a1)
-    ax.add_patch(a2)
     if event.xdata and event.ydata:
         # Note that numpy arrays are accessed by [row (y), col(x)], but images are indexed by [x, y]
         x, y = int(round(event.xdata)), int(round(event.ydata))
@@ -164,8 +160,9 @@ edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frame
 # edges = [edges[i] + frames[i] for i in range(len(edges))]
 # plt.imshow(edges[8])
 
+
 def find_furthest_points(point, frame):
-    best_solution = {'p1': (0, 0), 'p2': (0, 0), 'distance': -sys.maxint - 1}
+    result = {'p1': [], 'p2': [], 'distance': -sys.maxint - 1}
 
     points = Queue()
     points.put(point)
@@ -188,7 +185,12 @@ def find_furthest_points(point, frame):
             p8 = (p[0] + 1, p[1] + 1)
             potential.extend([p5, p6, p7, p8])
             for p in potential:
-                if p not in marked and edges[frame][p[1], p[0]] == 255:
+                if (p not in marked
+                    and 0 <= p[0] < len(edges[frame][1])
+                    and 0 <= p[1] < len(edges[frame][0])
+                    and abs(point[0] - p[0]) <= max_length
+                    and abs(point[1] - p[1]) <= max_length
+                    and edges[frame][p[1], p[0]] == 255):
                     marked.add(p)
                     points.put(p)
         else:
@@ -196,33 +198,57 @@ def find_furthest_points(point, frame):
                 if (p not in marked
                     and 0 <= p[0] < len(edges[frame][1])
                     and 0 <= p[1] < len(edges[frame][0])
-                    and point[0] - 6 <= p[0] <= point[0] + 6
-                    and point[1] - 6 <= p[1] <= point[1] + 6):
+                    and abs(point[0] - p[0]) <= max_length
+                    and abs(point[1] - p[1]) <= max_length):
                     marked.add(p)
                     points.put(p)
 
     fringe = list(fringe)
     for i in range(len(fringe)):
         for j in range(i + 1, len(fringe)):
-            d = np.linalg.norm(np.asarray(fringe[i]) - np.asarray(fringe[j]))
-            if d > best_solution['distance']:
-                best_solution['p1'] = fringe[i]
-                best_solution['p2'] = fringe[j]
-                best_solution['distance'] = d
-    return best_solution
+            d = euclidean_distance(np.asarray(fringe[i]), np.asarray(fringe[j]))
+            if d > result['distance']:
+                result['p1'] = [fringe[i]]
+                result['p2'] = [fringe[j]]
+                result['distance'] = d
+            elif d == result['distance']:
+                result['p1'].append(fringe[i])
+                result['p2'].append(fringe[j])
+    # average points p1 and points p2 in the case that they are the same distance apart
+    result['p1'] = tuple(np.mean(result['p1'], axis=0))
+    result['p2'] = tuple(np.mean(result['p2'], axis=0))
+    return result
 
+
+best_solutions = []
 for point in selected_points:
     for i in range(num_frames):
-        plt.imshow(edges[0])
         best_solution = find_furthest_points(tuple(point), i)
-        print(best_solution)
+        best_solutions.append(best_solution)
 
-# np.save('kymographs/' + videos_dir + video_name + '_kymographs', kymograph_images)
-# print('Sucessfully saved!')
-#
-# # save last kymograph as a tif for kicks on imagej
-# kym = Image.fromarray(processed_kymograph)
-# kym.save('kymographs/processedkym.tif')
-#
-# kym = Image.fromarray(unprocessed_kymograph)
-# kym.save('kymographs/unprocessedkym.tif')
+    trace = []
+    for frame in best_solutions:
+        # define orientation with location of point *furthest* away from center
+        d1 = euclidean_distance(np.asarray(frame['p1']), np.asarray(point))
+        d2 = euclidean_distance(np.asarray(frame['p2']), np.asarray(point))
+        furthest = frame['p2'] if d1 < d2 else frame['p1']
+        # negate angles because y increases downwards
+        if furthest[0] - point[0] == 0:
+            if furthest[1] > point[1]:
+                angle = -90
+            else:
+                angle = 90
+        # determine whether cell lies in left or right half
+        elif furthest[0] > point[0]:
+            angle = np.degrees(np.arctan(-(furthest[1] - point[1])/(furthest[0] - point[0])))
+        else:
+            angle = np.degrees(np.arctan(-(furthest[1] - point[1])/(furthest[0] - point[0]))) + 180
+        angle = (angle + 360) % 360
+        trace.append(round(angle * ang_chunks / 360))
+        # trace.append(angle)
+    plt.xlabel('Frame', fontsize=20)
+    plt.ylabel('Angle', fontsize=20)
+    plt.title('Trace', fontsize=20)
+    plt.plot(trace[:300], 'r-', lw=3)
+    plt.plot(trace[:300], 'bo', markersize=2)
+    plt.show()

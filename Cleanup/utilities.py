@@ -379,6 +379,9 @@ def print_to_csv(data, fname, meta, tifname):
             f.write(new_row_in_file + '\n')
     f.close()
 
+def euclidean_distance(p1, p2):
+    return np.linalg.norm(p1 - p2)
+
 # Goal:
 # * Filter particles better
 # * Organize code
