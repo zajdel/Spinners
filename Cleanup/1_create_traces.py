@@ -161,14 +161,94 @@ edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frame
 # plt.imshow(edges[8])
 
 
-def find_furthest_points(point, frame):
-    result = {'p1': [], 'p2': [], 'distance': -sys.maxint - 1}
+# def find_furthest_points(point, frame):
+#     result = {'p1': [], 'p2': [], 'distance': -sys.maxint - 1}
+#
+#     points = Queue()
+#     points.put(point)
+#     fringe = set()
+#     marked = set()
+#     marked.add(point)
+#
+#     while not points.empty():
+#         p = points.get()
+#         p1 = (p[0] - 1, p[1])
+#         p2 = (p[0] + 1, p[1])
+#         p3 = (p[0], p[1] - 1)
+#         p4 = (p[0], p[1] + 1)
+#         potential = [p1, p2, p3, p4]
+#         if edges[frame][p[1], p[0]] == 255:
+#             fringe.add(p)
+#             p5 = (p[0] - 1, p[1] - 1)
+#             p6 = (p[0] - 1, p[1] + 1)
+#             p7 = (p[0] + 1, p[1] - 1)
+#             p8 = (p[0] + 1, p[1] + 1)
+#             potential.extend([p5, p6, p7, p8])
+#             for p in potential:
+#                 if (p not in marked
+#                     and 0 <= p[0] < len(edges[frame][1])
+#                     and 0 <= p[1] < len(edges[frame][0])
+#                     and abs(point[0] - p[0]) <= max_length
+#                     and abs(point[1] - p[1]) <= max_length
+#                     and edges[frame][p[1], p[0]] == 255):
+#                     marked.add(p)
+#                     points.put(p)
+#         else:
+#             for p in potential:
+#                 if (p not in marked
+#                     and 0 <= p[0] < len(edges[frame][1])
+#                     and 0 <= p[1] < len(edges[frame][0])
+#                     and abs(point[0] - p[0]) <= max_length
+#                     and abs(point[1] - p[1]) <= max_length):
+#                     marked.add(p)
+#                     points.put(p)
+#
+#     fringe = list(fringe)
+#     for i in range(len(fringe)):
+#         for j in range(i + 1, len(fringe)):
+#             d = euclidean_distance(np.asarray(fringe[i]), np.asarray(fringe[j]))
+#             if d > result['distance']:
+#                 result['p1'] = [fringe[i]]
+#                 result['p2'] = [fringe[j]]
+#                 result['distance'] = d
+#             elif d == result['distance']:
+#                 result['p1'].append(fringe[i])
+#                 result['p2'].append(fringe[j])
+#     # average points p1 and points p2 in the case that they are the same distance apart
+#     result['p1'] = tuple(np.mean(result['p1'], axis=0))
+#     result['p2'] = tuple(np.mean(result['p2'], axis=0))
+#     return result
 
+
+def find_ellipse(point, frame):
     points = Queue()
     points.put(point)
     fringe = set()
     marked = set()
     marked.add(point)
+
+    start = point
+    # find one pixel on border with floodfill, then border traversal
+    if edges[frame][point[1], point[0]] == 0:
+        while not len(fringe):
+            p = points.get()
+            if edges[frame][p[1], p[0]] == 255:
+                fringe.add(p)
+                start = p
+                break
+            p1 = (p[0] - 1, p[1])
+            p2 = (p[0] + 1, p[1])
+            p3 = (p[0], p[1] - 1)
+            p4 = (p[0], p[1] + 1)
+            for p in [p1, p2, p3, p4]:
+                if p not in marked and 0 <= p[0] < len(edges[frame][1]) and 0 <= p[1] < len(edges[frame][0]):
+                    marked.add(p)
+                    points.put(p)
+
+    points = Queue()
+    points.put(start)
+    fringe = set()
+    fringe.add(start)
 
     while not points.empty():
         p = points.get()
@@ -176,76 +256,47 @@ def find_furthest_points(point, frame):
         p2 = (p[0] + 1, p[1])
         p3 = (p[0], p[1] - 1)
         p4 = (p[0], p[1] + 1)
-        potential = [p1, p2, p3, p4]
-        if edges[frame][p[1], p[0]] == 255:
-            fringe.add(p)
-            p5 = (p[0] - 1, p[1] - 1)
-            p6 = (p[0] - 1, p[1] + 1)
-            p7 = (p[0] + 1, p[1] - 1)
-            p8 = (p[0] + 1, p[1] + 1)
-            potential.extend([p5, p6, p7, p8])
-            for p in potential:
-                if (p not in marked
-                    and 0 <= p[0] < len(edges[frame][1])
-                    and 0 <= p[1] < len(edges[frame][0])
-                    and abs(point[0] - p[0]) <= max_length
-                    and abs(point[1] - p[1]) <= max_length
-                    and edges[frame][p[1], p[0]] == 255):
-                    marked.add(p)
-                    points.put(p)
-        else:
-            for p in potential:
-                if (p not in marked
-                    and 0 <= p[0] < len(edges[frame][1])
-                    and 0 <= p[1] < len(edges[frame][0])
-                    and abs(point[0] - p[0]) <= max_length
-                    and abs(point[1] - p[1]) <= max_length):
-                    marked.add(p)
-                    points.put(p)
+        p5 = (p[0] - 1, p[1] - 1)
+        p6 = (p[0] - 1, p[1] + 1)
+        p7 = (p[0] + 1, p[1] - 1)
+        p8 = (p[0] + 1, p[1] + 1)
+        for p in [p1, p2, p3, p4, p5, p6, p7, p8]:
+            if (p not in fringe
+                and 0 <= p[0] < len(edges[frame][1])
+                and 0 <= p[1] < len(edges[frame][0])
+                and edges[frame][p[1], p[0]] == 255):
+                fringe.add(p)
+                points.put(p)
 
-    fringe = list(fringe)
-    for i in range(len(fringe)):
-        for j in range(i + 1, len(fringe)):
-            d = euclidean_distance(np.asarray(fringe[i]), np.asarray(fringe[j]))
-            if d > result['distance']:
-                result['p1'] = [fringe[i]]
-                result['p2'] = [fringe[j]]
-                result['distance'] = d
-            elif d == result['distance']:
-                result['p1'].append(fringe[i])
-                result['p2'].append(fringe[j])
-    # average points p1 and points p2 in the case that they are the same distance apart
-    result['p1'] = tuple(np.mean(result['p1'], axis=0))
-    result['p2'] = tuple(np.mean(result['p2'], axis=0))
-    return result
+    # returns ((x-coordinate of center, y-coordinate of center), (width, height), rotation), width >= height
+    if len(fringe) >= 5:
+        ellipse = cv2.fitEllipse(np.array(list(fringe)))
+    else:
+        # fitEllipse does not work if there are fewer than 5 points on the fringe
+        # TODO: determine what to do if no elllipse can be found (-1 default value for no value?)
+        return None
+    center = ellipse[0]
+    major = ellipse[1][0] / 2
+    minor = ellipse[1][1] / 2
+    # TODO: make sure that theta is accurate compared to Algorithm 1 approach
+    theta = -ellipse[2] + 90
+
+    return theta
 
 
-best_solutions = []
 for point in selected_points:
-    for i in range(num_frames):
-        best_solution = find_furthest_points(tuple(point), i)
-        best_solutions.append(best_solution)
-
     trace = []
-    for frame in best_solutions:
-        # define orientation with location of point *furthest* away from center
-        d1 = euclidean_distance(np.asarray(frame['p1']), np.asarray(point))
-        d2 = euclidean_distance(np.asarray(frame['p2']), np.asarray(point))
-        furthest = frame['p2'] if d1 < d2 else frame['p1']
-        # negate angles because y increases downwards
-        if furthest[0] - point[0] == 0:
-            if furthest[1] > point[1]:
-                angle = -90
-            else:
-                angle = 90
-        # determine whether cell lies in left or right half
-        elif furthest[0] > point[0]:
-            angle = np.degrees(np.arctan(-(furthest[1] - point[1])/(furthest[0] - point[0])))
+    for i in range(num_frames):
+        angle = find_ellipse(tuple(point), i)
+        if not angle:
+            trace.append(None)
         else:
-            angle = np.degrees(np.arctan(-(furthest[1] - point[1])/(furthest[0] - point[0]))) + 180
-        angle = (angle + 360) % 360
-        trace.append(round(angle * ang_chunks / 360))
-        # trace.append(angle)
+            trace.append(round(angle * ang_chunks / 360))
+
+    for i in range(1, len(trace) - 2):
+        if not trace[i]:
+            trace[i] = (trace[i - 1] + trace[i + 1]) / 2
+
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
     plt.title('Trace', fontsize=20)
