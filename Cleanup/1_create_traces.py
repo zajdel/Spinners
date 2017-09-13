@@ -10,8 +10,6 @@ fname = videos_dir + video_name
 # fname = argv[1]
 tifname = fname + '.tif'
 meta = metamorph_timestamps.get(tifname)
-ang_chunks = 72
-max_length = 4
 raw_frames = pims.TiffStack(tifname, as_grey=False)
 frames = [np.fromstring(f.data, dtype=np.int16) for f in raw_frames]  # int16 may have to change depending on dtype
 frames = [np.reshape(f, (-1, raw_frames[0].shape[0], raw_frames[0].shape[1]))[0] for f in frames]
@@ -20,6 +18,15 @@ bit_frames = []
 for i in range(len(frames)):
     bit_frames.append(convert_to_8bit(frames[i]))
 frames = np.array(bit_frames)
+
+# Use following code to check fps of image stack
+
+# a = raw_frames._tiff[0].tags.datetime.value
+# b = raw_frames._tiff[1].tags.datetime.value
+# d1 = datetime.strptime(a, '%Y%m%d %H:%M:%S.%f')
+# d2 = datetime.strptime(b, '%Y%m%d %H:%M:%S.%f')
+# delta = (d2 - d1).microseconds / 1000000 # time difference in milliseconds
+# freq = 1 / delta # 62.5 fps
 
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^       Inverting Image          *^*^*^*^*^*^*^*^*^*^*^*^*^*^
@@ -153,71 +160,71 @@ num_selected_points = len(selected_points)
 #    b) distance to center (which quadrant?)
 # Reach: plot all traces for 1 condition
 
-num_frames = 300
+num_frames = 2000
 edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frames)]
-# kernel = np.ones((3, 3),np.uint8)
-# edges = [cv2.morphologyEx(edge, cv2.MORPH_CLOSE, kernel) for edge in edges]
-# edges = [edges[i] + frames[i] for i in range(len(edges))]
-# plt.imshow(edges[8])
+tifffile.imsave('edges2000.tif', np.asarray(edges))
 
 
-# def find_furthest_points(point, frame):
-#     result = {'p1': [], 'p2': [], 'distance': -sys.maxint - 1}
-#
-#     points = Queue()
-#     points.put(point)
-#     fringe = set()
-#     marked = set()
-#     marked.add(point)
-#
-#     while not points.empty():
-#         p = points.get()
-#         p1 = (p[0] - 1, p[1])
-#         p2 = (p[0] + 1, p[1])
-#         p3 = (p[0], p[1] - 1)
-#         p4 = (p[0], p[1] + 1)
-#         potential = [p1, p2, p3, p4]
-#         if edges[frame][p[1], p[0]] == 255:
-#             fringe.add(p)
-#             p5 = (p[0] - 1, p[1] - 1)
-#             p6 = (p[0] - 1, p[1] + 1)
-#             p7 = (p[0] + 1, p[1] - 1)
-#             p8 = (p[0] + 1, p[1] + 1)
-#             potential.extend([p5, p6, p7, p8])
-#             for p in potential:
-#                 if (p not in marked
-#                     and 0 <= p[0] < len(edges[frame][1])
-#                     and 0 <= p[1] < len(edges[frame][0])
-#                     and abs(point[0] - p[0]) <= max_length
-#                     and abs(point[1] - p[1]) <= max_length
-#                     and edges[frame][p[1], p[0]] == 255):
-#                     marked.add(p)
-#                     points.put(p)
-#         else:
-#             for p in potential:
-#                 if (p not in marked
-#                     and 0 <= p[0] < len(edges[frame][1])
-#                     and 0 <= p[1] < len(edges[frame][0])
-#                     and abs(point[0] - p[0]) <= max_length
-#                     and abs(point[1] - p[1]) <= max_length):
-#                     marked.add(p)
-#                     points.put(p)
-#
-#     fringe = list(fringe)
-#     for i in range(len(fringe)):
-#         for j in range(i + 1, len(fringe)):
-#             d = euclidean_distance(np.asarray(fringe[i]), np.asarray(fringe[j]))
-#             if d > result['distance']:
-#                 result['p1'] = [fringe[i]]
-#                 result['p2'] = [fringe[j]]
-#                 result['distance'] = d
-#             elif d == result['distance']:
-#                 result['p1'].append(fringe[i])
-#                 result['p2'].append(fringe[j])
-#     # average points p1 and points p2 in the case that they are the same distance apart
-#     result['p1'] = tuple(np.mean(result['p1'], axis=0))
-#     result['p2'] = tuple(np.mean(result['p2'], axis=0))
-#     return result
+def plot_ellipses(ellipses):
+    # necessary to redefine fig to show animation?
+    fig, ax = plt.subplots()
+
+    im = ax.imshow(edges[0], aspect='equal')
+
+    ellipse_patch = None
+
+    p1, p2 = None, None
+
+    def init():
+        # preferably nonlocal, but not supported in Python 2
+        global ellipse_patch
+        global p1, p2
+        im.set_data(edges[0])
+        # find first non-None ellipse in ellipses
+        first_ellipse = next(ellipse for ellipse in ellipses if ellipse is not None)
+        ellipse_patch = patches.Ellipse(*first_ellipse, color='r', fill=False)
+        ax.add_patch(ellipse_patch)
+
+        center, width, height, theta = first_ellipse
+        major, minor = width / 2, height / 2
+        p1 = patches.Rectangle(
+            (center[0] - cos(radians(theta)) * major - 0.5, center[1] - sin(radians(theta)) * major - 0.5), 1, 1,
+            color='b', fill=False)
+        p2 = patches.Rectangle(
+            (center[0] + cos(radians(theta)) * major - 0.5, center[1] + sin(radians(theta)) * major - 0.5), 1, 1,
+            color='g', fill=False)
+        ax.add_patch(p1)
+        ax.add_patch(p2)
+
+    def animate(i):
+        global ellipse_patch
+        global p1, p2
+        im.set_data(edges[i % len(edges)])
+        if ellipse_patch:
+            ellipse_patch.remove()
+            ellipse_patch = None
+
+            p1.remove()
+            p2.remove()
+        if ellipses[i % len(edges)]:
+            ellipse_patch = patches.Ellipse(*ellipses[i % len(edges)], color='r', fill=False)
+            ax.add_patch(ellipse_patch)
+
+            center, width, height, theta = ellipses[i % len(edges)]
+            major, minor = width / 2, height / 2
+            p1 = patches.Rectangle((center[0] - cos(radians(theta)) * major - 0.5, center[1] - sin(radians(theta)) * major -0.5), 1, 1, color='b', fill=False)
+            p2 = patches.Rectangle((center[0] + cos(radians(theta)) * major - 0.5, center[1] + sin(radians(theta)) * major - 0.5), 1, 1, color='g', fill=False)
+            ax.add_patch(p1)
+            ax.add_patch(p2)
+        return im
+
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(frames), interval=100)
+
+    # Writer = animation.writers['ffmpeg']
+    # writer = Writer(fps=10)
+    # anim.save('ellipses.mp4', writer=writer)
+
+    plt.show()
 
 
 def find_ellipse(point, frame):
@@ -228,7 +235,7 @@ def find_ellipse(point, frame):
     marked.add(point)
 
     start = point
-    # find one pixel on border with floodfill, then border traversal
+    # find one pixel on border with floodfill, then perform border traversal
     if edges[frame][point[1], point[0]] == 0:
         while not len(fringe):
             p = points.get()
@@ -268,38 +275,119 @@ def find_ellipse(point, frame):
                 fringe.add(p)
                 points.put(p)
 
-    # returns ((x-coordinate of center, y-coordinate of center), (width, height), rotation), width >= height
+    # returns ((x-coordinate of center, y-coordinate of center), (height, width), rotation), width >= height
+    # angle orientation: 0 vertical up, positive clockwise
     if len(fringe) >= 5:
         ellipse = cv2.fitEllipse(np.array(list(fringe)))
     else:
         # fitEllipse does not work if there are fewer than 5 points on the fringe
-        # TODO: determine what to do if no elllipse can be found (-1 default value for no value?)
         return None
     center = ellipse[0]
-    major = ellipse[1][0] / 2
-    minor = ellipse[1][1] / 2
-    # TODO: make sure that theta is accurate compared to Algorithm 1 approach
-    theta = -ellipse[2] + 90
+    # width >= height
+    minor = ellipse[1][0] / 2 # minor = height / 2
+    major = ellipse[1][1] / 2 # major = width / 2
+    theta = ellipse[2] - 90
 
-    return theta
+    return center, major, minor, theta
 
-
+unwrapped = None
 for point in selected_points:
+    ellipses = []
     trace = []
     for i in range(num_frames):
-        angle = find_ellipse(tuple(point), i)
-        if not angle:
-            trace.append(None)
-        else:
-            trace.append(round(angle * ang_chunks / 360))
+        ellipse = find_ellipse(tuple(point), i)
+        if ellipse:
+            center, major, minor, theta = ellipse
+            original_theta = theta
+            p1 = (center[0] - cos(radians(theta)) * major, center[1] - sin(radians(theta)) * major)
+            p2 = (center[0] + cos(radians(theta)) * major, center[1] + sin(radians(theta)) * major)
 
+            d1 = euclidean_distance(np.asarray(p1), np.asarray(point))
+            d2 = euclidean_distance(np.asarray(p2), np.asarray(point))
+            furthest = p2 if d1 < d2 else p1
+
+            correction = False
+            if furthest[0] - point[0] > 0 and not (-90 < theta < 90):
+                theta = theta
+            elif furthest[0] - point[0] == 0:
+                if furthest[1] - point[1] > 0:
+                    theta = -90
+                else:
+                    theta = 90
+            elif furthest[0] - point[0] < 0 and not (theta > 90 or theta < -90):
+                correction = True
+                theta += 180
+
+            # check that trace has at least one element and previous element is not None
+            if len(trace) and trace[-1]:
+                if abs(theta - degrees(trace[-1])) >= 90:
+                    if correction:
+                        theta -= 180
+                    else:
+                        theta += 180
+
+            # matplotlib.patches.Ellipses requires angle defined as 0 vertically up and positive clockwise
+            ellipses.append([center, major * 2, minor * 2, original_theta])
+            # trace.append(original_theta)
+            # trace.append(radians(original_theta))
+            trace.append(radians(theta))
+        else:
+            ellipses.append(None)
+            trace.append(None)
+
+    if trace[0] is None:
+        # TODO: what to do if first ellipse is undefined
+        trace[0] = next(ang for ang in trace if ang is not None)
     for i in range(1, len(trace) - 2):
-        if not trace[i]:
-            trace[i] = (trace[i - 1] + trace[i + 1]) / 2
+        if trace[i] is None:
+            # if ellipse does not exist, take previous and next non-None values and linearly approximate
+            try:
+                # TODO: check
+                next_valid_index = next(j for j in range(i, len(trace)) if trace[j] is not None)
+                trace[i] = trace[i - 1] + (trace[next_valid_index] - trace[i - 1]) / (next_valid_index - (i - 1))
+            except StopIteration:
+                prev, next_prev = i, i - 1
+                for j in range(i, -1, -1):
+                    if edges[j] is not None:
+                        prev = j
+                        break
+                for k in range(prev, -1, -1):
+                    if edges[k] is not None:
+                        next_prev = k
+                        break
+                trace[i] = trace[next_prev] + (trace[prev] - trace[next_prev]) / (prev - next_prev) * (i + 1 - prev)
+    plot_ellipses(ellipses)
+
+    unwrapped = np.unwrap(np.asarray(trace))
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
     plt.title('Trace', fontsize=20)
-    plt.plot(trace[:300], 'r-', lw=3)
-    plt.plot(trace[:300], 'bo', markersize=2)
+    plt.plot(unwrapped, 'r-', lw=1)
+    # plt.plot(trace[:300], 'r-', lw=1)
+    # plt.plot(trace, 'bo', markersize=1)
+    plt.grid(True, which='both')
+    plt.show()
+
+    speed = []
+    for i in range(unwrapped.shape[0]):
+        indices = []
+        angs = []
+        for j in range(i - 1, i + 2):
+            if 0 <= j < unwrapped.shape[0]:
+                indices.append(j)
+                angs.append(unwrapped[j])
+        try:
+            slope = linregress(indices, angs)[0]
+        except RuntimeWarning:
+            # TODO: confirm this is zero division error and find fix (infinite slope)
+            print "Encountered zero division error"
+            print angs
+        speed.append(slope)
+
+    plt.xlabel('Frame', fontsize=20)
+    plt.ylabel('Speed', fontsize=20)
+    plt.title('Speed', fontsize=20)
+    plt.plot(speed, 'r-', lw=1)
+    plt.grid(True, which='both')
     plt.show()

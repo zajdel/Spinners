@@ -1,7 +1,7 @@
 # Import packages
 from __future__ import division, unicode_literals  # , print_function
 import numpy as np
-from math import radians, sin, cos, floor
+from math import degrees, radians, sin, cos, floor
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -16,6 +16,7 @@ import tifffile
 from datetime import datetime
 import metamorph_timestamps
 from scipy.ndimage.filters import median_filter
+from scipy.stats import linregress
 import sys
 import os
 from PIL import Image
