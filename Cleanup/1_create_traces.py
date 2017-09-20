@@ -216,6 +216,14 @@ def plot_ellipses(ellipses):
             p2 = patches.Rectangle((center[0] + cos(radians(theta)) * major - 0.5, center[1] + sin(radians(theta)) * major - 0.5), 1, 1, color='g', fill=False)
             ax.add_patch(p1)
             ax.add_patch(p2)
+
+            p3 = patches.Ellipse((10, 10), 10, 1, 0, color='b', fill=False)
+            p4 = patches.Ellipse((10, 10), 10, 1, 30, color='g', fill=False)
+            p5 = patches.Ellipse((10, 10), 10, 1, 45, color='r', fill=False)
+
+            ax.add_patch(p3)
+            ax.add_patch(p4)
+            ax.add_patch(p5)
         return im
 
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(frames), interval=100)
@@ -286,7 +294,7 @@ def find_ellipse(point, frame):
     # width >= height
     minor = ellipse[1][0] / 2 # minor = height / 2
     major = ellipse[1][1] / 2 # major = width / 2
-    theta = ellipse[2] - 90
+    theta = ellipse[2] + 90 # define angle to be zero horizontally right
 
     return center, major, minor, theta
 
@@ -295,6 +303,8 @@ for point in selected_points:
     ellipses = []
     trace = []
     for i in range(num_frames):
+        if i == 93:
+            a = 1
         ellipse = find_ellipse(tuple(point), i)
         if ellipse:
             center, major, minor, theta = ellipse
@@ -326,11 +336,11 @@ for point in selected_points:
                     else:
                         theta += 180
 
-            # matplotlib.patches.Ellipses requires angle defined as 0 vertically up and positive clockwise
             ellipses.append([center, major * 2, minor * 2, original_theta])
             # trace.append(original_theta)
             # trace.append(radians(original_theta))
-            trace.append(radians(theta))
+            theta %= 360
+            trace.append(radians(theta % 360))
         else:
             ellipses.append(None)
             trace.append(None)
@@ -373,7 +383,7 @@ for point in selected_points:
     for i in range(unwrapped.shape[0]):
         indices = []
         angs = []
-        for j in range(i - 1, i + 2):
+        for j in range(i - 2, i + 3):
             if 0 <= j < unwrapped.shape[0]:
                 indices.append(j)
                 angs.append(unwrapped[j])
