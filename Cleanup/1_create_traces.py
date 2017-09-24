@@ -303,8 +303,6 @@ for point in selected_points:
     ellipses = []
     trace = []
     for i in range(num_frames):
-        if i == 93:
-            a = 1
         ellipse = find_ellipse(tuple(point), i)
         if ellipse:
             center, major, minor, theta = ellipse
@@ -330,7 +328,7 @@ for point in selected_points:
 
             # check that trace has at least one element and previous element is not None
             if len(trace) and trace[-1]:
-                if abs(theta - degrees(trace[-1])) >= 90:
+                if abs(theta - degrees(trace[-1])) > 90:
                     if correction:
                         theta -= 180
                     else:
