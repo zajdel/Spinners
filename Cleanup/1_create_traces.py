@@ -85,7 +85,7 @@ im = ax.imshow(show_frames[0], aspect='equal')
 #         rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
 #         ax.add_patch(rect)
 #         correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
-#                                     if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
+#                                     if 0 < i < sdv.shape[1] and 0 < j < sdv.shape[0]], key=lambda p: sdv[p[::-1]])
 #         selected_points.add(
 #             (correct_x, correct_y)  # use set to avoid duplicates being stored. (use tuple because can hash.)
 #         )
@@ -114,7 +114,7 @@ def on_press(event):
             ax.add_patch(rect)
 
             correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
-                                        if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
+                                        if 0 < i < sdv.shape[1] and 0 < j < sdv.shape[0]], key=lambda p: sdv[p[::-1]])
             if correct_x != x or correct_y != y:
                 print('Corrected green box at ({0}, {1})'.format(correct_x, correct_y))
                 area = patches.Rectangle((x - 2.5, y - 2.5), 5, 5, linewidth=0.5, edgecolor='r', facecolor='none')
@@ -153,14 +153,24 @@ num_selected_points = len(selected_points)
 #################################################################
 #################################################################
 
-# 1. Canny around center
-# 2. Find points farthest apart on ellipse --> constrain to within distance of line (line passes within proximity of center)
-# 3. Calculate orientation
-#    a) separated points
-#    b) distance to center (which quadrant?)
-# Reach: plot all traces for 1 condition
+# v3
+# 1. Threshold the sdv image (close if necessary) and use Canny edge detection on frames.
+# 2. Take bitwise AND of the threshold and the image stack, result should be "active" edges.
+# 3. For each selected point:
+#     3a. Find the points on the edge.  Define a region of interest (5x5 or 6x6 box) around the selected point and find
+#         all white points in the "active" image.
+#     3b. Take weighted regression of the points on the edge, the center point must lie on the line.  Using the center
+#         point as the origin, the line lies in two of the four quadrants.  Compare each point on the edge to the center,
+#         final angle can be calculated from slope of line and quadrant with most points.
 
-num_frames = 2000
+# ret, thresh = cv2.threshold(sdv, 50, 255, cv2.THRESH_BINARY)
+# plt.imshow(sdv.astype(np.uint8))
+ret, thresh = cv2.threshold(sdv.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+# plt.imshow(thresh)
+
+num_frames = len(frames)
+frames_and_thresh = [cv2.bitwise_and(frames[i], thresh) for i in range(num_frames)]
+thresh_edges = [cv2.Canny(frame, 100, 250, apertureSize=3) for frame in frames_and_thresh]
 edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frames)]
 tifffile.imsave('edges2000.tif', np.asarray(edges))
 
@@ -216,14 +226,6 @@ def plot_ellipses(ellipses):
             p2 = patches.Rectangle((center[0] + cos(radians(theta)) * major - 0.5, center[1] + sin(radians(theta)) * major - 0.5), 1, 1, color='g', fill=False)
             ax.add_patch(p1)
             ax.add_patch(p2)
-
-            p3 = patches.Ellipse((10, 10), 10, 1, 0, color='b', fill=False)
-            p4 = patches.Ellipse((10, 10), 10, 1, 30, color='g', fill=False)
-            p5 = patches.Ellipse((10, 10), 10, 1, 45, color='r', fill=False)
-
-            ax.add_patch(p3)
-            ax.add_patch(p4)
-            ax.add_patch(p5)
         return im
 
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(frames), interval=100)
@@ -277,9 +279,10 @@ def find_ellipse(point, frame):
         p8 = (p[0] + 1, p[1] + 1)
         for p in [p1, p2, p3, p4, p5, p6, p7, p8]:
             if (p not in fringe
-                and 0 <= p[0] < len(edges[frame][1])
-                and 0 <= p[1] < len(edges[frame][0])
-                and edges[frame][p[1], p[0]] == 255):
+                    and 0 <= p[0] < len(edges[frame][1])
+                    and 0 <= p[1] < len(edges[frame][0])
+                    and edges[frame][p[1], p[0]] == 255
+                    and frames_and_thresh[i][p[1], p[0]] != 0):
                 fringe.add(p)
                 points.put(p)
 
@@ -296,7 +299,22 @@ def find_ellipse(point, frame):
     major = ellipse[1][1] / 2 # major = width / 2
     theta = ellipse[2] + 90 # define angle to be zero horizontally right
 
-    return center, major, minor, theta
+    return list(fringe), center, major, minor, theta
+
+
+def find_correct_orientation(theta, center, points):
+    score = {theta: 0, (theta + 180) % 360: 0}
+    for p in points:
+        a = np.arctan2(p[1] - center[1], p[0] - center[0])
+        b = np.degrees(a)
+        c = b - theta
+        d = c % 180
+        if (np.degrees(np.arctan2(p[1] - center[1], p[0] - center[0])) - theta) % 180 <= 90:
+            score[theta] += 1
+        else:
+            score[(theta + 180) % 360] += 1
+    return max(score, key=score.get)
+
 
 unwrapped = None
 for point in selected_points:
@@ -305,40 +323,14 @@ for point in selected_points:
     for i in range(num_frames):
         ellipse = find_ellipse(tuple(point), i)
         if ellipse:
-            center, major, minor, theta = ellipse
-            original_theta = theta
-            p1 = (center[0] - cos(radians(theta)) * major, center[1] - sin(radians(theta)) * major)
-            p2 = (center[0] + cos(radians(theta)) * major, center[1] + sin(radians(theta)) * major)
+            border, center, major, minor, theta = ellipse
 
-            d1 = euclidean_distance(np.asarray(p1), np.asarray(point))
-            d2 = euclidean_distance(np.asarray(p2), np.asarray(point))
-            furthest = p2 if d1 < d2 else p1
+            correction = find_correct_orientation(theta, point, border)
 
-            correction = False
-            if furthest[0] - point[0] > 0 and not (-90 < theta < 90):
-                theta = theta
-            elif furthest[0] - point[0] == 0:
-                if furthest[1] - point[1] > 0:
-                    theta = -90
-                else:
-                    theta = 90
-            elif furthest[0] - point[0] < 0 and not (theta > 90 or theta < -90):
-                correction = True
-                theta += 180
-
-            # check that trace has at least one element and previous element is not None
-            if len(trace) and trace[-1]:
-                if abs(theta - degrees(trace[-1])) > 90:
-                    if correction:
-                        theta -= 180
-                    else:
-                        theta += 180
-
-            ellipses.append([center, major * 2, minor * 2, original_theta])
+            ellipses.append([center, major * 2, minor * 2, theta])
             # trace.append(original_theta)
             # trace.append(radians(original_theta))
-            theta %= 360
-            trace.append(radians(theta % 360))
+            trace.append(radians(correction % 360))
         else:
             ellipses.append(None)
             trace.append(None)
@@ -372,6 +364,11 @@ for point in selected_points:
     plt.ylabel('Angle', fontsize=20)
     plt.title('Trace', fontsize=20)
     plt.plot(unwrapped, 'r-', lw=1)
+    # annotation for 100nM_leu100n_1.tif
+    plt.axvspan(203, 207, color='green', alpha=0.5)
+    plt.axvspan(1656, 1658, color='green', alpha=0.5)
+    plt.axvspan(1662, 1666, color='green', alpha=0.5)
+    plt.axvspan(1824, 1825, color='green', alpha=0.5)
     # plt.plot(trace[:300], 'r-', lw=1)
     # plt.plot(trace, 'bo', markersize=1)
     plt.grid(True, which='both')
