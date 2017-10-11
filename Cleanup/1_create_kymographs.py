@@ -110,7 +110,7 @@ F = ax.scatter(x=[c[0] for c in centers], y=[c[1] for c in centers], s=240, face
 #         rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
 #         ax.add_patch(rect)
 #         correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
-#                                     if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
+#                                     if 0 < i < sdv.shape[i] and 0 < j < sdv.shape[0]], key=lambda p: sdv[p[::-1]])
 #         selected_points.add(
 #             (correct_x, correct_y)  # use set to avoid duplicates being stored. (use tuple because can hash.)
 #         )
@@ -139,7 +139,7 @@ def on_press(event):
             ax.add_patch(rect)
 
             correct_x, correct_y = min([(i, j) for i in range(x - 1, x + 2) for j in range(y - 1, y + 2)
-                                        if 0 < i < sdv.shape[0] and 0 < j < sdv.shape[1]], key=lambda p: sdv[p[::-1]])
+                                        if 0 < i < sdv.shape[1] and 0 < j < sdv.shape[0]], key=lambda p: sdv[p[::-1]])
             if correct_x != x or correct_y != y:
                 print('Corrected green box at ({0}, {1})'.format(correct_x, correct_y))
                 area = patches.Rectangle((x - 2.5, y - 2.5), 5, 5, linewidth=0.5, edgecolor='r', facecolor='none')

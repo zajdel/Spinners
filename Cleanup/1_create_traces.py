@@ -181,7 +181,7 @@ def find_furthest_point(point, frame):
     marked = set()
     marked.add(point)
 
-    while not points.empty():
+    while not points.empty() and len(cell) <= 10:
         p = points.get()
         p1 = (p[0] - 1, p[1])
         p2 = (p[0] + 1, p[1])
@@ -212,8 +212,13 @@ for center in selected_points:
     ellipses = []
     trace = []
     for i in range(num_frames):
+        if i == 602:
+            a = 0
         furthest_point = find_furthest_point((center[0], center[1]), i)
-        trace.append(np.arctan2(furthest_point[1] - center[1], furthest_point[0] - center[0]))
+        # define angle to increase positively clockwise
+        ang = np.arctan2(center[1] - furthest_point[1], furthest_point[0] - center[0])
+        ang_deg = ang * 180 / np.pi
+        trace.append(ang)
 
     unwrapped = np.unwrap(np.asarray(trace))
 
@@ -254,7 +259,7 @@ for center in selected_points:
     for i in range(unwrapped.shape[0]):
         indices = []
         angs = []
-        for j in range(i - 2, i + 3):
+        for j in range(i - 6, i + 7):
             if 0 <= j < unwrapped.shape[0]:
                 indices.append(j)
                 angs.append(unwrapped[j])
@@ -271,4 +276,5 @@ for center in selected_points:
     plt.title('Speed', fontsize=20)
     plt.plot(speed, 'r-', lw=1)
     plt.grid(True, which='both')
+    plt.savefig("leu_100u_6_speed.png")
     plt.show()
