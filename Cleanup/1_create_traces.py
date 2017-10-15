@@ -153,8 +153,6 @@ num_selected_points = len(selected_points)
 
 # ret, thresh = cv2.threshold(sdv, 50, 255, cv2.THRESH_BINARY)
 # plt.imshow(sdv.astype(np.uint8))
-thresh_frames = np.asarray([cv2.adaptiveThreshold(f, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 2) for f in frames])
-tifffile.imsave('thresh_frames.tif', np.asarray(thresh_frames))
 
 ret, thresh = cv2.threshold(sdv.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 # plt.imshow(thresh)
@@ -162,7 +160,7 @@ ret, thresh = cv2.threshold(sdv.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv
 num_frames = len(frames)
 frames_and_thresh = [cv2.bitwise_and(frames[i], thresh) for i in range(num_frames)]
 
-thresh_frames = np.asarray([cv2.adaptiveThreshold(f, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 2) for f in frames_and_thresh])
+thresh_frames = np.asarray([cv2.adaptiveThreshold(f, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 3) for f in frames_and_thresh])
 tifffile.imsave('thresh_frames.tif', np.asarray(thresh_frames))
 
 # plt.imshow(frames_and_thresh[0])
@@ -172,17 +170,19 @@ tifffile.imsave('thresh_frames.tif', np.asarray(thresh_frames))
 # tifffile.imsave('edges2000.tif', np.asarray(edges))
 
 
-def find_furthest_point(point, frame):
-    # get all points connected to center, find furthest points
-    points = Queue()
-    points.put(point)
+def find_furthest_points(center, frame):
+    # get all points connected to center ("cell"), find furthest points
+    fringe = Queue()
+    fringe.put(center)
     cell = set()
-    cell.add(point)
     marked = set()
-    marked.add(point)
+    marked.add(center)
 
-    while not points.empty() and len(cell) <= 10:
-        p = points.get()
+    # Breadth-first search
+    while not fringe.empty() and len(cell) <= 10:
+        p = fringe.get()
+        if thresh_frames[frame][p[1], p[0]] == 0:
+            cell.add(p)
         p1 = (p[0] - 1, p[1])
         p2 = (p[0] + 1, p[1])
         p3 = (p[0], p[1] - 1)
@@ -192,19 +192,17 @@ def find_furthest_point(point, frame):
         p7 = (p[0] + 1, p[1] - 1)
         p8 = (p[0] + 1, p[1] + 1)
         for p in [p1, p2, p3, p4, p5, p6, p7, p8]:
-            if (p not in cell
+            if (p not in marked
                     and 0 <= p[0] < len(thresh_frames[frame][1])
-                    and 0 <= p[1] < len(thresh_frames[frame][0])
-                    and p not in marked
-                    and thresh_frames[frame][p[1], p[0]] == 0):
-                points.put(p)
-                cell.add(p)
-        marked.add(point)
+                    and 0 <= p[1] < len(thresh_frames[frame][0])):
+                marked.add(p)
+                fringe.put(p)
 
     cell = list(cell)
     # pairs = [(cell[i], cell[j]) for i in range(len(cell)) for j in range(i + 1, len(cell))]
     # return max(pairs, key=lambda x: euclidean_distance(*x))
-    return max(cell, key=lambda x: euclidean_distance(x, point))
+    max_dist = max([euclidean_distance(p, center) for p in cell])
+    return [p for p in cell if euclidean_distance(p, center) == max_dist]
 
 
 unwrapped = None
@@ -214,7 +212,11 @@ for center in selected_points:
     for i in range(num_frames):
         if i == 602:
             a = 0
-        furthest_point = find_furthest_point((center[0], center[1]), i)
+        furthest_points = find_furthest_points((center[0], center[1]), i)
+        if len(furthest_points) > 1:
+            b = 1
+        else:
+            furthest_point = furthest_points[0]
         # define angle to increase positively clockwise
         ang = np.arctan2(center[1] - furthest_point[1], furthest_point[0] - center[0])
         ang_deg = ang * 180 / np.pi
@@ -259,7 +261,7 @@ for center in selected_points:
     for i in range(unwrapped.shape[0]):
         indices = []
         angs = []
-        for j in range(i - 6, i + 7):
+        for j in range(i - 2, i + 3):
             if 0 <= j < unwrapped.shape[0]:
                 indices.append(j)
                 angs.append(unwrapped[j])
@@ -275,6 +277,25 @@ for center in selected_points:
     plt.ylabel('Speed', fontsize=20)
     plt.title('Speed', fontsize=20)
     plt.plot(speed, 'r-', lw=1)
+
+    # annotation for leu_100um_2.tif (100uM_leu100u_6.tif) (2017-09-22) Point 150, 18
+    plt.axvspan(0, 26, color='green', alpha=0.5)
+    plt.axvspan(146, 168, color='green', alpha=0.5)
+    plt.axvspan(173, 199, color='green', alpha=0.5)
+    plt.axvspan(209, 217, color='green', alpha=0.5)
+    plt.axvspan(240, 273, color='green', alpha=0.5)
+    plt.axvspan(279, 281, color='green', alpha=0.5)
+    plt.axvspan(287, 308, color='green', alpha=0.5)
+    plt.axvspan(331, 383, color='green', alpha=0.5)
+    plt.axvspan(386, 400, color='green', alpha=0.5)
+    plt.axvspan(406, 440, color='green', alpha=0.5)
+    plt.axvspan(441, 482, color='green', alpha=0.5)
+    plt.axvspan(483, 504, color='green', alpha=0.5)
+    plt.axvspan(507, 513, color='green', alpha=0.5)
+    plt.axvspan(516, 535, color='green', alpha=0.5)
+    plt.axvspan(538, 563, color='green', alpha=0.5)
+    plt.axvspan(624, 878, color='green', alpha=0.5)
+
     plt.grid(True, which='both')
     plt.savefig("leu_100u_6_speed.png")
     plt.show()
