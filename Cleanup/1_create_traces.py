@@ -180,7 +180,7 @@ def find_furthest_points(center, frame):
     marked.add(center)
 
     # Modified breadth-first search
-    while not fringe.empty() and len(cell) <= 8:
+    while not fringe.empty() and len(cell) <= 9:
         p = fringe.get()
         p1 = (p[0] - 1, p[1])
         p2 = (p[0] + 1, p[1])
@@ -211,24 +211,22 @@ for center in selected_points:
     ellipses = []
     trace = []
     for i in range(num_frames):
-        if i == 608:
-            a = 0
         furthest_points = find_furthest_points((center[0], center[1]), i)
         if len(furthest_points) > 1:
             if len(trace):
                 # take point whose angle is closest to previous angle
-                furthest_point = min(furthest_points, key=lambda x: abs(trace[i - 1] % 360 - np.arctan2(center[1] - x[1], x[0] - center[0]) % 360))
+                furthest_point = min(furthest_points, key=lambda x: abs(trace[i - 1] % (2 * np.pi) - np.arctan2(x[0] - center[0], center[1] - x[1]) % (2 * np.pi)))
             else:
                 # TODO: what to do if first frame is ambiguous
                 furthest_point = furthest_points[0]
         else:
             furthest_point = furthest_points[0]
         # define angle to increase positively clockwise
-        ang = np.arctan2(center[1] - furthest_point[1], furthest_point[0] - center[0])
-        ang_deg = ang * 180 / np.pi
+        ang = np.arctan2(furthest_point[0] - center[0], center[1] - furthest_point[1])
         trace.append(ang)
 
-    unwrapped = medfilt(np.unwrap(np.asarray(trace)), 3)
+    # unwrap trace and apply 1D median filter (default kernel size 3)
+    unwrapped = medfilt(np.unwrap(np.asarray(trace)))
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
