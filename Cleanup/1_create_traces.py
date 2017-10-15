@@ -175,14 +175,13 @@ def find_furthest_points(center, frame):
     fringe = Queue()
     fringe.put(center)
     cell = set()
+    cell.add(center)
     marked = set()
     marked.add(center)
 
-    # Breadth-first search
-    while not fringe.empty() and len(cell) <= 10:
+    # Modified breadth-first search
+    while not fringe.empty() and len(cell) <= 8:
         p = fringe.get()
-        if thresh_frames[frame][p[1], p[0]] == 0:
-            cell.add(p)
         p1 = (p[0] - 1, p[1])
         p2 = (p[0] + 1, p[1])
         p3 = (p[0], p[1] - 1)
@@ -194,8 +193,10 @@ def find_furthest_points(center, frame):
         for p in [p1, p2, p3, p4, p5, p6, p7, p8]:
             if (p not in marked
                     and 0 <= p[0] < len(thresh_frames[frame][1])
-                    and 0 <= p[1] < len(thresh_frames[frame][0])):
+                    and 0 <= p[1] < len(thresh_frames[frame][0])
+                    and thresh_frames[frame][p[1], p[0]] == 0):
                 marked.add(p)
+                cell.add(p)
                 fringe.put(p)
 
     cell = list(cell)
@@ -210,11 +211,16 @@ for center in selected_points:
     ellipses = []
     trace = []
     for i in range(num_frames):
-        if i == 602:
+        if i == 608:
             a = 0
         furthest_points = find_furthest_points((center[0], center[1]), i)
         if len(furthest_points) > 1:
-            b = 1
+            if len(trace):
+                # take point whose angle is closest to previous angle
+                furthest_point = min(furthest_points, key=lambda x: abs(trace[i - 1] % 360 - np.arctan2(center[1] - x[1], x[0] - center[0]) % 360))
+            else:
+                # TODO: what to do if first frame is ambiguous
+                furthest_point = furthest_points[0]
         else:
             furthest_point = furthest_points[0]
         # define angle to increase positively clockwise
@@ -222,7 +228,7 @@ for center in selected_points:
         ang_deg = ang * 180 / np.pi
         trace.append(ang)
 
-    unwrapped = np.unwrap(np.asarray(trace))
+    unwrapped = medfilt(np.unwrap(np.asarray(trace)), 3)
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
