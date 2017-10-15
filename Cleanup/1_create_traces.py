@@ -206,7 +206,6 @@ def find_furthest_points(center, frame):
     return [p for p in cell if euclidean_distance(p, center) == max_dist]
 
 
-unwrapped = None
 for center in selected_points:
     ellipses = []
     trace = []
@@ -232,6 +231,7 @@ for center in selected_points:
     plt.ylabel('Angle', fontsize=20)
     plt.title('Trace', fontsize=20)
     plt.plot(unwrapped, 'r-', lw=1)
+
     # # annotation for 100nM_leu100n_1.tif
     # plt.axvspan(203, 207, color='green', alpha=0.5)
     # plt.axvspan(1656, 1658, color='green', alpha=0.5)
@@ -259,6 +259,7 @@ for center in selected_points:
     # plt.plot(trace[:300], 'r-', lw=1)
     # plt.plot(trace, 'bo', markersize=1)
     plt.grid(True, which='both')
+    # plt.savefig("leu_100u_6_trace.png")
     plt.show()
 
     speed = []
@@ -269,12 +270,7 @@ for center in selected_points:
             if 0 <= j < unwrapped.shape[0]:
                 indices.append(j)
                 angs.append(unwrapped[j])
-        try:
-            slope = linregress(indices, angs)[0]
-        except RuntimeWarning:
-            # TODO: confirm this is zero division error and find fix (infinite slope)
-            print "Encountered zero division error"
-            print angs
+        slope = linregress(indices, angs)[0]
         speed.append(slope)
 
     plt.xlabel('Frame', fontsize=20)
@@ -301,5 +297,5 @@ for center in selected_points:
     plt.axvspan(624, 878, color='green', alpha=0.5)
 
     plt.grid(True, which='both')
-    plt.savefig("leu_100u_6_speed.png")
+    # plt.savefig("leu_100u_6_speed.png")
     plt.show()
