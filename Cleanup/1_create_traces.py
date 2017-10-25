@@ -158,10 +158,29 @@ ret, thresh = cv2.threshold(sdv.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv
 # plt.imshow(thresh)
 
 num_frames = len(frames)
-frames_and_thresh = [cv2.bitwise_and(frames[i], thresh) for i in range(num_frames)]
 
-thresh_frames = np.asarray([cv2.adaptiveThreshold(f, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, 3) for f in frames_and_thresh])
-tifffile.imsave('thresh_frames.tif', np.asarray(thresh_frames))
+# Median filter with 3x3 kernel
+frames = [cv2.medianBlur(f, 3) for f in frames]
+
+# Local Otsu threshold with radius 15
+radius = 15
+selem = disk(radius)
+# frames = [(f >= rank.otsu(f, selem)) * 255 for f in frames]
+for i in range(5):
+    start = time.time()
+    local_thresholded_frame = (frames[i] >= rank.otsu(frames[i], selem)) * 255
+    print("Frames %i: %f seconds elapsed." % (i, time.time() - start))
+
+# Standard deviation of local thresholded Otsu image
+sdv = np.std(frames, axis=0)
+# rescale sdv and then multiply by (2^N - 1), where N is the depth of each pixel
+sdv = np.divide(np.subtract(sdv, np.amin(sdv)), np.amax(sdv) - np.amin(sdv)) * (2**8 - 1)
+sdv = (sdv >= threshold_otsu(sdv)) * 255
+
+# Take bitwise AND of SDV mask and thresholded Otsu frames
+frames_and_sdv = [cv2.bitwise_and(frames[i].astype(np.uint8), sdv.astype(np.uint8)) for i in range(num_frames)]
+
+tifffile.imsave('thresh_frames.tif', np.asarray(frames_and_sdv))
 
 # plt.imshow(frames_and_thresh[0])
 
@@ -192,9 +211,9 @@ def find_furthest_points(center, frame):
         p8 = (p[0] + 1, p[1] + 1)
         for p in [p1, p2, p3, p4, p5, p6, p7, p8]:
             if (p not in marked
-                    and 0 <= p[0] < len(thresh_frames[frame][1])
-                    and 0 <= p[1] < len(thresh_frames[frame][0])
-                    and thresh_frames[frame][p[1], p[0]] == 0):
+                    and 0 <= p[0] < len(frames_and_sdv[frame][1])
+                    and 0 <= p[1] < len(frames_and_sdv[frame][0])
+                    and frames_and_sdv[frame][p[1], p[0]] == 0):
                 marked.add(p)
                 cell.add(p)
                 fringe.put(p)
@@ -266,7 +285,7 @@ for center in selected_points:
     for i in range(unwrapped.shape[0]):
         indices = []
         angs = []
-        for j in range(i - 2, i + 3):
+        for j in range(i - 1, i + 2):
             if 0 <= j < unwrapped.shape[0]:
                 indices.append(j)
                 angs.append(unwrapped[j])
@@ -276,7 +295,7 @@ for center in selected_points:
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Speed', fontsize=20)
     plt.title('Speed', fontsize=20)
-    plt.plot(speed, 'r-', lw=1)
+    plt.plot(medfilt(speed), 'r-', lw=1)
 
     # annotation for leu_100um_2.tif (100uM_leu100u_6.tif) (2017-09-22) Point 150, 18
     plt.axvspan(0, 26, color='green', alpha=0.5)
