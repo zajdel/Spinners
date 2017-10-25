@@ -157,6 +157,7 @@ num_selected_points = len(selected_points)
 ret, thresh = cv2.threshold(sdv.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 # plt.imshow(thresh)
 
+
 num_frames = len(frames)
 
 # Median filter with 3x3 kernel
@@ -166,9 +167,9 @@ frames = [cv2.medianBlur(f, 3) for f in frames]
 radius = 15
 selem = disk(radius)
 # frames = [(f >= rank.otsu(f, selem)) * 255 for f in frames]
-for i in range(5):
+for i in range(num_frames):
     start = time.time()
-    local_thresholded_frame = (frames[i] >= rank.otsu(frames[i], selem)) * 255
+    frames[i] = (frames[i] >= rank.otsu(frames[i], selem)) * 255
     print("Frames %i: %f seconds elapsed." % (i, time.time() - start))
 
 # Standard deviation of local thresholded Otsu image
@@ -181,12 +182,6 @@ sdv = (sdv >= threshold_otsu(sdv)) * 255
 frames_and_sdv = [cv2.bitwise_and(frames[i].astype(np.uint8), sdv.astype(np.uint8)) for i in range(num_frames)]
 
 tifffile.imsave('thresh_frames.tif', np.asarray(frames_and_sdv))
-
-# plt.imshow(frames_and_thresh[0])
-
-# thresh_edges = [cv2.Canny(frame, 100, 250, apertureSize=3) for frame in frames_and_thresh]
-# edges = [cv2.Canny(frames[i], 100, 250, apertureSize=3) for i in range(num_frames)]
-# tifffile.imsave('edges2000.tif', np.asarray(edges))
 
 
 def find_furthest_points(center, frame):
