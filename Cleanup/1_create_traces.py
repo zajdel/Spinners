@@ -85,8 +85,9 @@ def on_press(event):
 
         rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
-        correct_x, correct_y = min([(i, j) for i in range(x - 2, x + 3) for j in range(y - 2, y + 3)
-                                    if 0 < i < sdv.shape[1] and 0 < j < sdv.shape[0]], key=lambda p: sdv[p[::-1]])
+        roi = [(i, j) for i in range(x - 2, x + 3) for j in range(y - 2, y + 3) if 0 < i < sdv.shape[1] and 0 < j < sdv.shape[0]]
+        min_intensity = min([sdv[p[::-1]] for p in roi]) # p[::-1] simply reverses tuple
+        correct_x, correct_y = np.mean([v for i, v in enumerate(roi) if v == min_intensity], axis=0)
         selected_points.add(
             (correct_x, correct_y)  # use set to avoid duplicates being stored. (use tuple because can hash.)
         )
