@@ -165,7 +165,7 @@ def find_furthest_points(center, frame):
     return [p for p in cell if euclidean_distance(p, center) == max_dist]
 
 
-traces = []
+wrapped_traces = []
 for center in selected_points:
     ellipses = []
     trace = []
@@ -184,9 +184,11 @@ for center in selected_points:
         ang = np.arctan2(furthest_point[0] - center[0], center[1] - furthest_point[1])
         trace.append(ang)
 
+    # add wrapped trace to CSV output
+    wrapped_traces.append(np.insert(trace, 0, [center[0], center[1]]))
+
     # unwrap trace and apply 1D median filter (default kernel size 3)
     unwrapped = medfilt(np.unwrap(np.asarray(trace[2:])))
-    traces.append(np.insert(unwrapped, 0, [center[0], center[1]]))
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
@@ -261,4 +263,4 @@ for center in selected_points:
     # plt.savefig("leu_100u_6_speed.png")
     plt.show()
 
-np.savetxt(fname + ".csv", np.asarray(traces), delimiter=",", fmt="%.4f")
+np.savetxt(fname + ".csv", np.asarray(wrapped_traces), delimiter=",", fmt="%.4f")
