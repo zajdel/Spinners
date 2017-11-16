@@ -194,35 +194,7 @@ for center in selected_points:
     plt.ylabel('Angle', fontsize=20)
     plt.title('Trace', fontsize=20)
     plt.plot(unwrapped, 'r-', lw=1)
-
-    # # annotation for 100nM_leu100n_1.tif
-    # plt.axvspan(203, 207, color='green', alpha=0.5)
-    # plt.axvspan(1656, 1658, color='green', alpha=0.5)
-    # plt.axvspan(1662, 1666, color='green', alpha=0.5)
-    # plt.axvspan(1824, 1825, color='green', alpha=0.5)
-
-    # annotation for leu_100um_2.tif (100uM_leu100u_6.tif) (2017-09-22) Point 150, 18
-    # plt.axvspan(0, 26, color='green', alpha=0.5)
-    # plt.axvspan(146, 168, color='green', alpha=0.5)
-    # plt.axvspan(173, 199, color='green', alpha=0.5)
-    # plt.axvspan(209, 217, color='green', alpha=0.5)
-    # plt.axvspan(240, 273, color='green', alpha=0.5)
-    # plt.axvspan(279, 281, color='green', alpha=0.5)
-    # plt.axvspan(287, 308, color='green', alpha=0.5)
-    # plt.axvspan(331, 383, color='green', alpha=0.5)
-    # plt.axvspan(386, 400, color='green', alpha=0.5)
-    # plt.axvspan(406, 440, color='green', alpha=0.5)
-    # plt.axvspan(441, 482, color='green', alpha=0.5)
-    # plt.axvspan(483, 504, color='green', alpha=0.5)
-    # plt.axvspan(507, 513, color='green', alpha=0.5)
-    # plt.axvspan(516, 535, color='green', alpha=0.5)
-    # plt.axvspan(538, 563, color='green', alpha=0.5)
-    # plt.axvspan(624, 878, color='green', alpha=0.5)
-
-    # plt.plot(trace[:300], 'r-', lw=1)
-    # plt.plot(trace, 'bo', markersize=1)
     plt.grid(True, which='both')
-    # plt.savefig("leu_100u_6_trace.png")
     plt.show()
 
     speed = []
@@ -240,27 +212,7 @@ for center in selected_points:
     plt.ylabel('Speed', fontsize=20)
     plt.title('Speed', fontsize=20)
     plt.plot(medfilt(speed), 'r-', lw=1)
-
-    # annotation for leu_100um_2.tif (100uM_leu100u_6.tif) (2017-09-22) Point 150, 18
-    # plt.axvspan(0, 26, color='green', alpha=0.5)
-    # plt.axvspan(146, 168, color='green', alpha=0.5)
-    # plt.axvspan(173, 199, color='green', alpha=0.5)
-    # plt.axvspan(209, 217, color='green', alpha=0.5)
-    # plt.axvspan(240, 273, color='green', alpha=0.5)
-    # plt.axvspan(279, 281, color='green', alpha=0.5)
-    # plt.axvspan(287, 308, color='green', alpha=0.5)
-    # plt.axvspan(331, 383, color='green', alpha=0.5)
-    # plt.axvspan(386, 400, color='green', alpha=0.5)
-    # plt.axvspan(406, 440, color='green', alpha=0.5)
-    # plt.axvspan(441, 482, color='green', alpha=0.5)
-    # plt.axvspan(483, 504, color='green', alpha=0.5)
-    # plt.axvspan(507, 513, color='green', alpha=0.5)
-    # plt.axvspan(516, 535, color='green', alpha=0.5)
-    # plt.axvspan(538, 563, color='green', alpha=0.5)
-    # plt.axvspan(624, 878, color='green', alpha=0.5)
-
     plt.grid(True, which='both')
-    # plt.savefig("leu_100u_6_speed.png")
     plt.show()
 
 np.savetxt(fname + ".csv", np.asarray(wrapped_traces), delimiter=",", fmt="%.4f")
