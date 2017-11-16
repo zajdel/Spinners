@@ -16,7 +16,10 @@ import tifffile
 from datetime import datetime
 import metamorph_timestamps
 from scipy.ndimage.filters import median_filter
+from scipy.signal import medfilt
 from scipy.stats import linregress
+# from skimage.morphology import disk
+# from skimage.filters import threshold_otsu, rank
 import sys
 import os
 from PIL import Image
@@ -261,7 +264,7 @@ def compute_trace2(processed_kymograph):
     # extract 1D signal by going through the kymograph column by column and detecting minima
     trace = []
 
-    img = np.array(processed_kymograph[:, :300], dtype=np.uint8)
+    img = np.array(processed_kymograph, dtype=np.uint8)
     edges = cv2.Canny(img, 100, 255, apertureSize = 3)
 
     edges += img
@@ -286,7 +289,7 @@ def compute_trace2(processed_kymograph):
                 while trace[-1][1] < 5/6 * edges.shape[1] and potential_points[i][median_index] - trace[-1][1] < 5/8 * edges.shape[1] and median_index > 0:
                     median_index -= 1
             trace.append((i, potential_points[i][median_index]))
-    for i in range(1, len(trace) - 1):
+    for i in range(2, len(trace) - 2):
         y = trace[i][1]
         # If maxima/minima, extend up/down as far as possible
         if trace[i - 1][1] <= y >= trace[i + 1][1] and trace[i - 2][1] <= y >= trace[i + 2][1]:
@@ -380,8 +383,9 @@ def print_to_csv(data, fname, meta, tifname):
             f.write(new_row_in_file + '\n')
     f.close()
 
+
 def euclidean_distance(p1, p2):
-    return np.linalg.norm(p1 - p2)
+    return np.linalg.norm(np.asarray(p1) - np.asarray(p2))
 
 # Goal:
 # * Filter particles better
