@@ -130,12 +130,13 @@ num_frames = len(frames)
 
 def find_furthest_points(center, frame):
     # get all points connected to center ("cell"), find furthest points
+    nearest_pixel_to_center = (int(round(center[0])), int(round(center[1])))
     fringe = Queue()
-    fringe.put(center)
+    fringe.put(nearest_pixel_to_center)
     cell = set()
-    cell.add(center)
+    cell.add(nearest_pixel_to_center)
     marked = set()
-    marked.add(center)
+    marked.add(nearest_pixel_to_center)
 
     # Modified breadth-first search
     while not fringe.empty():
@@ -152,7 +153,7 @@ def find_furthest_points(center, frame):
             if (p not in marked
                     and 0 <= p[0] < len(frames[frame][1])
                     and 0 <= p[1] < len(frames[frame][0])
-                    and euclidean_distance(center, p) <= 10
+                    and euclidean_distance(center, p) <= 8
                     and frames[frame][p[1], p[0]] == 0):
                 marked.add(p)
                 cell.add(p)
@@ -197,6 +198,7 @@ for center in selected_points:
     plt.grid(True, which='both')
     plt.show()
 
+    # Calculate speed from trace
     speed = []
     for i in range(unwrapped.shape[0]):
         indices = []
