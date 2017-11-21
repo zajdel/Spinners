@@ -60,7 +60,7 @@ frameview = new_frames
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
 # need these for cycling through cells
-N = 20
+N = 50
 show_frames = frameview[0:N]
 
 if len(sys.argv) >= 4 and sys.argv[3] == '--s':
@@ -210,7 +210,7 @@ for center in selected_points:
         slope = linregress(indices, angs)[0]
         speed.append(slope)
 
-    plt.xlabel('Frame', fontsize=20)
+    plt.xlabel('Frame ({0}, {1})'.format(center[0], center[1]), fontsize=20)
     plt.ylabel('Speed', fontsize=20)
     plt.title('Speed', fontsize=20)
     plt.plot(medfilt(speed), 'r-', lw=1)
