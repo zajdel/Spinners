@@ -193,7 +193,7 @@ for center in selected_points:
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
-    plt.title('Trace', fontsize=20)
+    plt.title('Trace ({0}, {1})'.format(center[0], center[1]), fontsize=20)
     plt.plot(unwrapped, 'r-', lw=1)
     plt.grid(True, which='both')
     plt.show()
@@ -210,9 +210,9 @@ for center in selected_points:
         slope = linregress(indices, angs)[0]
         speed.append(slope)
 
-    plt.xlabel('Frame ({0}, {1})'.format(center[0], center[1]), fontsize=20)
+    plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Speed', fontsize=20)
-    plt.title('Speed', fontsize=20)
+    plt.title('Speed ({0}, {1})'.format(center[0], center[1]), fontsize=20)
     plt.plot(medfilt(speed), 'r-', lw=1)
     plt.grid(True, which='both')
     plt.show()
