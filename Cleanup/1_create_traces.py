@@ -1,6 +1,6 @@
 from __future__ import division
 from utilities import *
-#  Ex. python 1_create_traces.py 1mM [Concentration] 2 [File No. in paths dictionary]
+#  Ex. python 1_create_traces.py 100u_leu1 [TIF]
 # (See utilities.py)
 from Queue import Queue
 from matplotlib import animation
@@ -19,6 +19,7 @@ raw_frames = pims.TiffStack(tifname, as_grey=False)
 #     bit_frames.append(convert_to_8bit(frames[i]))
 # frames = np.array(bit_frames)
 frames = np.array(raw_frames[0], dtype=np.uint8)
+print(frames.shape)
 
 # Use following code to check fps of image stack
 
@@ -186,7 +187,7 @@ for center in selected_points:
         trace.append(ang)
 
     # add wrapped trace to CSV output
-    wrapped_traces.append(np.insert(trace, 0, [center[0], center[1]]))
+    wrapped_traces.append(np.append([center[0], center[1]], trace))
 
     # unwrap trace and apply 1D median filter (default kernel size 3)
     unwrapped = medfilt(np.unwrap(np.asarray(trace[2:])))
