@@ -1,6 +1,7 @@
 from utilities import *
 #  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Trace in CSV] 100nM_leu100n_1.tif [Original TIF]
 from matplotlib import animation
+from matplotlib.widgets import Button
 
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
@@ -24,7 +25,20 @@ def animate(counter):
     fig, ax = plt.subplots(3, 3)
     animations = []
     cells = []
-    time_text = fig.text(0.15, 0.95, '', horizontalalignment='left', verticalalignment='top')
+    time_text = fig.text(0.147, 0.92, '', horizontalalignment='left', verticalalignment='top')
+
+    def record_yes(event):
+        status[counter] = 1
+        plt.close()
+
+    def record_no(event):
+        status[counter] = 0
+        plt.close()
+
+    b_yes = Button(fig.add_axes([0.605, 0.9, 0.1, 0.03]), 'Yes')
+    b_no = Button(fig.add_axes([0.755, 0.9, 0.1, 0.03]), 'No')
+    b_yes.on_clicked(record_yes)
+    b_no.on_clicked(record_no)
 
     def init():
         for i in range(num_subplots):
@@ -53,5 +67,4 @@ def animate(counter):
 for i in range(num_centers):
     animate(i)
 
-
-# np.savetxt(tifname + "-corrected.csv", np.asarray(np.hstack((centers, trace))), delimiter=",", fmt="%.4f")
+np.savetxt(fname2 + ".csv", np.asarray(np.hstack((centers, status, trace))), fmt=','.join(["%.4f"] * centers.shape[1] + ["%i"] + ["%.4f"] * trace.shape[1]))
