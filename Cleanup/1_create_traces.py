@@ -187,7 +187,8 @@ for center in selected_points:
         trace.append(ang)
 
     # add wrapped trace to CSV output
-    wrapped_traces.append(np.append([center[0], center[1]], trace))
+    # Prepend center_x, center_y, -1 (status unverified)
+    wrapped_traces.append(np.append([center[0], center[1]], np.append([-1], trace)))
 
     # unwrap trace and apply 1D median filter (default kernel size 3)
     unwrapped = medfilt(np.unwrap(np.asarray(trace[2:])))

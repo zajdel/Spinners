@@ -1,7 +1,6 @@
 from utilities import *
 #  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Trace in CSV] 100nM_leu100n_1.tif [Original TIF]
 from matplotlib import animation
-import matplotlib.lines as lines
 
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
@@ -9,7 +8,8 @@ fname2 = sys.argv[2]
 dataname = fname1 + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
 num_centers = data.shape[0]
-centers, trace = np.hsplit(data, np.array([2]))
+# Status code: -1: unverified, 0: verified - bad, 1: verified - good
+centers, status, trace = np.hsplit(data, np.array([2, 3]))
 
 tifname = fname2 + '.tif'
 raw_frames = pims.TiffStack(tifname, as_grey=False)
