@@ -1,5 +1,5 @@
 from utilities import *
-#  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Trace in CSV] 100nM_leu100n_1.tif [Original TIF]
+#  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Code + Trace in CSV] 100nM_leu100n_1.tif [Original TIF]
 from matplotlib import animation
 from matplotlib.widgets import Button
 
