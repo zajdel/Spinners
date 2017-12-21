@@ -5,7 +5,7 @@ from utilities import *
 fname = sys.argv[1]
 dataname = fname + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
-centers, trace = np.hsplit(data, 2)
+centers, trace = np.hsplit(data, np.array([2]))
 
 status = np.zeros((data.shape[0], 1), dtype=np.int)
 new_data = np.hstack((centers, status, trace))
