@@ -7,7 +7,7 @@ dataname = fname + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
 centers, trace = np.hsplit(data, np.array([2]))
 
-status = np.zeros((data.shape[0], 1), dtype=np.int)
+status = np.full((data.shape[0], 1), -1, dtype=np.int)
 new_data = np.hstack((centers, status, trace))
 
 np.savetxt(fname + ".csv", new_data, fmt=','.join(["%.4f"] * centers.shape[1] + ["%i"] + ["%.4f"] * trace.shape[1]))
