@@ -21,6 +21,14 @@ raw_frames = pims.TiffStack(tifname, as_grey=False)
 frames = np.array(raw_frames[0], dtype=np.uint8)
 print(frames.shape)
 
+# Overwrite mode
+centers = []
+if len(sys.argv) == 3:
+    fname2 = sys.argv[2]
+    csvname = fname2 + '.csv'
+    data = np.loadtxt(csvname, delimiter=",")
+    centers, _, _ = np.hsplit(data, np.array([2, 3]))
+
 # Use following code to check fps of image stack
 
 # a = raw_frames._tiff[0].tags.datetime.value
@@ -77,8 +85,14 @@ else:
 fig, ax = plt.subplots()
 im = ax.imshow(show_frames[0], aspect='equal')
 
+for center in centers:
+    rect = patches.Rectangle((center[0] - 0.5, center[1] - 0.5), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
+    ax.add_patch(rect)
+
+# convert centers array to list of tuples and create a set from it
+selected_points = set(tuple(map(tuple, centers)))
+
 # Points automatically chosen
-selected_points = set()
 def on_press(event):
     if event.xdata and event.ydata:
         x, y = int(round(event.xdata)), int(round(event.ydata))
@@ -183,7 +197,8 @@ for center in selected_points:
         else:
             furthest_point = furthest_points[0]
         # define angle to increase positively clockwise
-        ang = np.arctan2(furthest_point[0] - center[0], center[1] - furthest_point[1])
+        ang = np.arctan2(center[1] - furthest_point[1], furthest_point[0] - center[0])
+        deg = np.degrees(ang)
         trace.append(ang)
 
     # add wrapped trace to CSV output
@@ -219,4 +234,4 @@ for center in selected_points:
     plt.grid(True, which='both')
     plt.show()
 
-np.savetxt(fname + ".csv", np.asarray(wrapped_traces), delimiter=",", fmt="%.4f")
+np.savetxt(fname + ".csv", np.asarray(wrapped_traces), fmt=','.join(["%.4f"] * 2 + ["%i"] + ["%.4f"] * num_frames))

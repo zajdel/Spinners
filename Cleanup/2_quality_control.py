@@ -21,7 +21,7 @@ num_subplots = 9
 num_frames = data.shape[1]
 radius = 6
 
-def animate(counter):
+def animate_frames(counter):
     fig, ax = plt.subplots(3, 3)
     animations = []
     cells = []
@@ -46,11 +46,10 @@ def animate(counter):
             ax[i % 3, i // 3].set_xlim(center_x - 10, center_x + 10)
             ax[i % 3, i // 3].set_ylim(center_y - 10, center_y + 10)
             animations.append(ax[i % 3, i // 3].imshow(frames[num_frames / num_subplots * i, center_y - 10 : center_y + 10, center_x - 10 : center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10]))
-            x = [center_x, center_x + radius * cos(trace[counter, num_frames / num_subplots * i])]
-            y = [center_x, center_y + radius * sin(trace[counter, num_frames / num_subplots * i])]
+            x = [center_x + 0.5, center_x + radius * cos(trace[counter, num_frames / num_subplots * i]) + 0.5]
+            y = [center_y - 0.5, center_y + radius * sin(trace[counter, num_frames / num_subplots * i]) - 0.5]
             cells.append(ax[i % 3, i // 3].plot(x, y)[0])
         time_text.set_text('Frame 0 of %d' % (num_frames / num_subplots))
-
 
     def animate(frame):
         for i in range(num_subplots):
@@ -58,8 +57,8 @@ def animate(counter):
             animations[i] = ax[i % 3, i // 3].imshow(frames[(num_frames / num_subplots * i) + frame % (num_frames / num_subplots), center_y - 10: center_y + 10, center_x - 10: center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10])
             # TODO: is this actually correct?
             # angle is calculated with respect to numpy array, i.e. arctan(x/y), so we correct with x = center_x + sin(theta) and y = center_y + cos(theta)
-            x = [center_x, center_x + radius * sin(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)])]
-            y = [center_y, center_y + radius * cos(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)])]
+            x = [center_x + 0.5, center_x + radius * cos(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)]) + 0.5]
+            y = [center_y - 0.5, center_y + radius * sin(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)]) - 0.5]
             cells[i].set_data(x, y)
         time_text.set_text('Frame %d of %d' % (frame % 400, num_frames / num_subplots))
 
@@ -67,6 +66,6 @@ def animate(counter):
     plt.show()
 
 for i in range(num_centers):
-    animate(i)
+    animate_frames(i)
 
 np.savetxt(fname2 + ".csv", np.asarray(np.hstack((centers, status, trace))), fmt=','.join(["%.4f"] * centers.shape[1] + ["%i"] + ["%.4f"] * trace.shape[1]))
