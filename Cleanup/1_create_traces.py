@@ -198,7 +198,6 @@ for center in selected_points:
             furthest_point = furthest_points[0]
         # define angle to increase positively clockwise
         ang = np.arctan2(center[1] - furthest_point[1], furthest_point[0] - center[0])
-        deg = np.degrees(ang)
         trace.append(ang)
 
     # add wrapped trace to CSV output
