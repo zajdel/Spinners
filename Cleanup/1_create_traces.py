@@ -49,7 +49,8 @@ if len(sys.argv) == 3:
 # *^*^*^*^*^*^*^*^*^*^*^     Getting Donut Image        *^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
-sdv = np.mean(frames[0:500], axis=0)
+# sdv = np.sdv(frames[0:500], axis=0)
+mean = np.mean(frames[0:500], axis=0)
 # rescale sdv and then multiply by (2^N - 1), where N is the depth of each pixel
 # sdv = np.divide(np.subtract(sdv, np.amin(sdv)), np.amax(sdv) - np.amin(sdv)) * (2**8 - 1)
 
@@ -57,7 +58,7 @@ sdv = np.mean(frames[0:500], axis=0)
 # *^*^*^*^*^*^*^*^*^*^*^     Overlay Donut on BG        *^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
-overlay = Image.fromarray(sdv).convert('RGB')
+overlay = Image.fromarray(mean).convert('RGB')
 new_frames = []
 for frame in frames:
     frame = Image.fromarray(frame).convert('RGB')
@@ -96,13 +97,13 @@ selected_points = set(tuple(map(tuple, centers)))
 def on_press(event):
     if event.xdata and event.ydata:
         x, y = int(round(event.xdata)), int(round(event.ydata))
-        print('You pressed {0} at ({1}, {2}) with sdv value of {3}.'.format(event.button, x, y, sdv[y, x]))
+        print('You pressed {0} at ({1}, {2}) with mean value of {3}.'.format(event.button, x, y, mean[y, x]))
 
         rect = patches.Rectangle((x - 0.5, y - 0.5), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
-        roi = [(i, j) for i in range(x - 2, x + 3) for j in range(y - 2, y + 3) if 0 < i < sdv.shape[1] and 0 < j < sdv.shape[0]]
-        min_intensity = min([sdv[p[::-1]] for p in roi]) # p[::-1] reverses tuple
-        correct_x, correct_y = np.mean([p for p in roi if sdv[p[::-1]] == min_intensity], axis=0)
+        roi = [(i, j) for i in range(x - 2, x + 3) for j in range(y - 2, y + 3) if 0 < i < mean.shape[1] and 0 < j < mean.shape[0]]
+        min_intensity = min([mean[p[::-1]] for p in roi]) # p[::-1] reverses tuple
+        correct_x, correct_y = np.mean([p for p in roi if mean[p[::-1]] == min_intensity], axis=0)
         selected_points.add(
             (correct_x, correct_y)  # use set to avoid duplicates being stored. (use tuple because can hash.)
         )
