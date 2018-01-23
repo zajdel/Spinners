@@ -52,13 +52,16 @@ def compute_features(trace, window=900):
             count += 1
         else:
             switch += 1
-            if prev_direction > 0:
-                avg_cw[1] += 1
-                avg_cw[0] = (avg_cw[0] + count)/ avg_cw[1]
-            else:
-                avg_ccw[1] += 1
-                avg_ccw[0] = (avg_ccw[0] + count)/ avg_ccw[1]
-            count = 0
+            if prev_direction == -1.0:
+                temp1 = avg_ccw[1] + 1
+                temp0 = (avg_ccw[0]*avg_ccw[1] + count) / temp1
+                avg_ccw = (temp0, temp1)
+            elif prev_direction == 1.0:
+                temp1 = avg_cw[1] + 1
+                temp0 = (avg_cw[0]*avg_cw[1] + count) / temp1
+                avg_cw = (temp0, temp1)
+            count = 1
+            prev_direction = i
     features["bias"] = total / 900
     features["cw"] = avg_cw[0]
     features["ccw"] = avg_ccw[0]
@@ -76,7 +79,6 @@ def compute_features_for_each_trace(traces):
         features["cw"].append(results["cw"])
         features["ccw"].append(results["ccw"])
         features["switch"].append(results["switch"])
-        print(features)
     return features
 
 
@@ -88,7 +90,7 @@ if __name__ == '__main__':
     result = compute_features_for_each_trace(traces)  # compute features using ALL traces from ONE concentration
     # bias = [filename[:-1]] + result
     print(result)
-    np.savetxt(out, result, fmt='%5f', delimiter=",")
+    #np.savetxt(out, result, fmt='%5f', delimiter=",")
     out.close()
 # np.save("biases/" + concentration, result)
 
