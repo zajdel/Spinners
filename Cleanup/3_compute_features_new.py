@@ -15,7 +15,7 @@ out_name = out + '.csv'
 interval_bias = lambda s: np.sum((-np.array(s) + 1) / 2) / len(s)  # CCW / (CCW + CW); s is interval over which to compute bias, s is signs of rotation direction. NOTE: correct if cw is positive, ccw is negative.
 
 
-def compute_bias(trace, window=30):
+def compute_features(trace, window=900):
     # Input: trace is single bacterium raw time series
     #       window is size of window over which we (locally) compute bias.
     # Output: time series of bias at all overlapping intervals of window-length.  (len: len(trace) - window)
@@ -38,18 +38,46 @@ def compute_bias(trace, window=30):
     # no sliding window as here:
     # use first 'first' frames to compute bias
     interval = signs[:window]
-    bias = interval_bias(interval)
-    return bias
+
+    features = {}
+    total = 0
+    avg_cw = (0,0)
+    avg_ccw = (0,0)
+    switch = 0
+    count = 0
+    prev_direction = interval[0]
+    for i in interval:
+        total += (-i + 1) / 2
+        if i == prev_direction:
+            count += 1
+        else:
+            switch += 1
+            if prev_direction > 0:
+                avg_cw[1] += 1
+                avg_cw[0] = (avg_cw[0] + count)/ avg_cw[1]
+            else:
+                avg_ccw[1] += 1
+                avg_ccw[0] = (avg_ccw[0] + count)/ avg_ccw[1]
+            count = 0
+    features["bias"] = total / 900
+    features["cw"] = avg_cw[0]
+    features["ccw"] = avg_ccw[0]
+    features["switch"] = switch
+    return features
 
 
 def compute_features_for_each_trace(traces):
-    results = []
+    features = {"biases":[],"cw":[], "ccw":[], "switch":[]}
     for trace in traces:
         # unwrap and smooth the trace before computing the bias
         # trace =smooth(np.unwrap(trace*np.pi/180.0),11)*180/np.pi;
-        biases = compute_bias(trace, count)  # Set first and frames so that it's about 10 s of data.
-        results.append(biases)
-    return results
+        results = compute_features(trace, count)  # Set first and frames so that it's about 10 s of data.
+        features["biases"].append(results["bias"])
+        features["cw"].append(results["cw"])
+        features["ccw"].append(results["ccw"])
+        features["switch"].append(results["switch"])
+        print(features)
+    return features
 
 
 if __name__ == '__main__':
