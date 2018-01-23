@@ -84,13 +84,16 @@ def compute_features_for_each_trace(traces):
 
 if __name__ == '__main__':
     out = open(out_name, 'a+')
+    writer = csv.writer(out, delimiter=",")
     # data = np.loadtxt("traces/" + csv_name, delimiter=",")
     data = np.loadtxt(csv_name, delimiter=",")
     centers, status, traces = np.hsplit(data, np.array([2, 3]))
-    result = compute_features_for_each_trace(traces)  # compute features using ALL traces from ONE concentration
+    features = compute_features_for_each_trace(traces)  # compute features using ALL traces from ONE concentration
     # bias = [filename[:-1]] + result
-    print(result)
-    #np.savetxt(out, result, fmt='%5f', delimiter=",")
+    #print(features)
+    reformat = list(zip(features["biases"], features["cw"], features["ccw"], features["switch"]))
+    #print(reformat)
+    writer.writerows(reformat)
     out.close()
 # np.save("biases/" + concentration, result)
 
