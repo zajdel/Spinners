@@ -95,7 +95,7 @@ if __name__ == '__main__':
     #print(reformat)
     writer.writerows(reformat)
     out.close()
-# np.save("biases/" + concentration, result)
+    # np.save("biases/" + concentration, result)
 
 # To load:
 # Note: Use [()], which allows us to load the dict() we saved as a .npy file.

@@ -1,14 +1,15 @@
 from utilities import *
-#  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Code + Trace in CSV] 100nM_leu100n_1.tif [Original TIF]
+#  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Code + Trace in CSV] 100nM_leu100n_1 [Original TIF] 0 [Quality Control Type]
 from matplotlib import animation
 from matplotlib.widgets import Button
 
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
+type = sys.argv[3] # if trace == 0, show traces, if trace == 1, show reconstructed cell overlaid on actual image
 
 dataname = fname1 + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
-num_centers = data.shape[0]
+num_cells = data.shape[0]
 # Status code: -1: unverified, 0: verified - bad, 1: verified - good
 centers, status, trace = np.hsplit(data, np.array([2, 3]))
 
@@ -21,7 +22,35 @@ num_subplots = 9
 num_frames = data.shape[1]
 radius = 6
 
-def animate_frames(counter):
+
+def show_trace(counter):
+    fig, ax = plt.subplots()
+
+    def record_yes(event):
+        status[counter] = 1
+        plt.close()
+
+    def record_no(event):
+        status[counter] = 0
+        plt.close()
+
+    unwrapped = np.unwrap(np.asarray(trace[i]))
+
+    plt.xlabel('Frame', fontsize=20)
+    plt.ylabel('Angle', fontsize=20)
+    plt.title('Trace ({0}, {1})'.format(centers[i][0], centers[i][1]), fontsize=20)
+    plt.plot(unwrapped, 'r-', lw=1)
+    plt.grid(True, which='both')
+
+    b_yes = Button(fig.add_axes([0.65, 0.9, 0.1, 0.03]), 'Yes')
+    b_no = Button(fig.add_axes([0.80, 0.9, 0.1, 0.03]), 'No')
+    b_yes.on_clicked(record_yes)
+    b_no.on_clicked(record_no)
+
+    plt.show()
+
+
+def animate_frames_overlay(counter):
     fig, ax = plt.subplots(3, 3)
     animations = []
     cells = []
@@ -65,7 +94,11 @@ def animate_frames(counter):
     anim = animation.FuncAnimation(fig, animate, init_func=init, interval=50)
     plt.show()
 
-for i in range(num_centers):
-    animate_frames(i)
+
+for i in range(num_cells):
+    if type == "0":
+        show_trace(i)
+    elif type == "1":
+        animate_frames_overlay(i)
 
 np.savetxt(fname2 + ".csv", np.asarray(np.hstack((centers, status, trace))), fmt=','.join(["%.4f"] * centers.shape[1] + ["%i"] + ["%.4f"] * trace.shape[1]))
