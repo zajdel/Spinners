@@ -5,7 +5,7 @@ from matplotlib.widgets import Button
 
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
-type = sys.argv[3] # if trace == 0, show traces, if trace == 1, show reconstructed cell overlaid on actual image
+type = sys.argv[3] # if trace == 0, show trace graphs, if trace == 1, show reconstructed cells overlaid on actual video
 
 dataname = fname1 + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
