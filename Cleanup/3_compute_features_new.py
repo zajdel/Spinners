@@ -76,16 +76,18 @@ def compute_features(trace, window=900):
     return features
 
 
-def compute_features_for_each_trace(traces):
+def compute_features_for_each_trace(status,traces):
     features = {"biases":[],"cw":[], "ccw":[], "switch":[]}
-    for trace in traces:
-        # unwrap and smooth the trace before computing the bias
-        # trace =smooth(np.unwrap(trace*np.pi/180.0),11)*180/np.pi;
-        results = compute_features(trace, count)  # Set first and frames so that it's about 10 s of data.
-        features["biases"].append(results["bias"])
-        features["cw"].append(results["cw"])
-        features["ccw"].append(results["ccw"])
-        features["switch"].append(results["switch"])
+	# remove traces that have a status of 0 (rejected)
+    for s,trace in zip(status,traces):
+	    if (s==1):
+             # unwrap and smooth the trace before computing the bias
+             # trace =smooth(np.unwrap(trace*np.pi/180.0),11)*180/np.pi;
+             results = compute_features(trace, count)  # Set first and frames so that it's about 10 s of data.
+             features["biases"].append(results["bias"])
+             features["cw"].append(results["cw"])
+             features["ccw"].append(results["ccw"])
+             features["switch"].append(results["switch"])
     return features
 
 
@@ -95,7 +97,7 @@ if __name__ == '__main__':
     # data = np.loadtxt("traces/" + csv_name, delimiter=",")
     data = np.loadtxt(csv_name, delimiter=",")
     centers, status, traces = np.hsplit(data, np.array([2, 3]))
-    features = compute_features_for_each_trace(traces)  # compute features using ALL traces from ONE concentration
+    features = compute_features_for_each_trace(status,traces)  # compute features using ALL traces from ONE concentration
     # bias = [filename[:-1]] + result
     #print(features)
     reformat = list(zip(features["biases"], features["cw"], features["ccw"], features["switch"]))
