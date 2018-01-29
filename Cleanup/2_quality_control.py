@@ -6,7 +6,7 @@ from matplotlib.widgets import Button
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
 type = sys.argv[3] # if type == 0, show trace graphs, if type == 1, show reconstructed cells overlaid on actual video
-				   # if type == 2, show velocity graph processed from trace graph
+                   # if type == 2, show velocity graph processed from trace graph
 dataname = fname1 + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
 num_cells = data.shape[0]
@@ -26,6 +26,30 @@ def moving_average(values, window=8):
     weights = np.repeat(1.0, window)/window
     sma = np.convolve(values, weights, 'valid')
     return sma
+    
+def hysteresis_threshold(trace,rel=0.6):
+    max = np.percentile(trace,97.5)
+    min = np.percentile(trace,2.5)
+    tH = max - (np.absolute(max)+np.absolute(min))*rel
+    tL = min + (np.absolute(max)+np.absolute(min))*rel
+    dir = np.arange(len(trace))
+    
+    high = False
+    for k in range(0,len(trace)):
+        if high:
+            if trace[k]< tL:
+                dir[k] = -1
+            else:
+                dir[k] = 1
+                high = False
+        elif ~high:
+            if trace[k] > tH:
+                dir[k] = 1
+            else:
+                dir[k] = -1
+                high = True
+            
+    return dir
 
 def show_trace(counter):
     fig, ax = plt.subplots()
@@ -35,23 +59,26 @@ def show_trace(counter):
         plt.close()
 
     def record_no(event):
-		status[counter] = 0
-		plt.close()
-	
+        status[counter] = 0
+        plt.close()
+    
     unwrapped = np.unwrap(np.asarray(trace[i]))
     ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms moving average filter window
-    velocity = np.convolve([-1., 1], ma_trace, mode='full')    
+    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='full')    
+    velocity = velocity[:-2]
+    d = hysteresis_threshold(velocity,0.6)
+    
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
     plt.title('Trace ({0}, {1})'.format(centers[i][0], centers[i][1]), fontsize=20)
-	
+    
     if type=="0":
         plt.plot(unwrapped, 'r-', lw=1)
     elif type=="2":
-        plt.plot(velocity, 'r-', lw=1)	
-        plt.ylim((-3,3))
-	
-	plt.grid(True, which='both')
+        plt.plot(range(0,len(velocity)), velocity, 'r-',range(0,len(velocity)), d, 'b-')    
+        plt.ylim((-2,2))
+    
+    plt.grid(True, which='both')
 
     b_yes = Button(fig.add_axes([0.65, 0.9, 0.1, 0.03]), 'Yes')
     b_no = Button(fig.add_axes([0.80, 0.9, 0.1, 0.03]), 'No')
