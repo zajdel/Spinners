@@ -15,6 +15,30 @@ count = int(sys.argv[5])
 
 interval_bias = lambda s: np.sum((-np.array(s) + 1) / 2) / len(s)  # CCW / (CCW + CW); s is interval over which to compute bias, s is signs of rotation direction. NOTE: correct if cw is positive, ccw is negative.
 
+def hysteresis_threshold(trace,rel=0.6):
+    max = np.percentile(trace,97.5)
+    min = np.percentile(trace,2.5)
+    tH = max - (np.absolute(max)+np.absolute(min))*rel
+    tL = min + (np.absolute(max)+np.absolute(min))*rel
+    dir = np.zeros(len(trace))
+    
+    high = False
+    for k in range(0,len(trace)):
+        if high:
+            if trace[k]< tL:
+                dir[k] = -1.0
+            else:
+                dir[k] = 1.0
+                high = False
+        elif ~high:
+            if trace[k] > tH:
+                dir[k] = 1.0
+            else:
+                dir[k] = -1.0
+                high = True
+            
+    return dir
+
 def moving_average(values, window=8):
     weights = np.repeat(1.0, window)/window
     sma = np.convolve(values, weights, 'valid')
@@ -29,13 +53,15 @@ def compute_features(trace, window=900):
 	
     # 1. Derivative of 1D signal. (Angular velocity) Use to get signs, which tell us CCW or CW.
     ma_trace = moving_average(trace, 8) # 8*1/32 fps ~ 250 ms median filter window
-    conv = np.convolve([-1., 1], ma_trace, mode='full')
+    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='full')    
+    velocity = velocity[:-2]
+    d = hysteresis_threshold(velocity,0.6)
 	
     # Optionally:
     #       median_filtered_conv = median_filter(conv, 7) # pick window size based on result. second arg is odd number.
 
     # 2. Get direction of rotation (CCW & CW)
-    signs = np.sign(conv)  # Positive values correspond to cw rotation. Negative = ccw rotation.
+    signs = np.sign(d)  # Positive values correspond to cw rotation. Negative = ccw rotation.
 
     # Optionally:
     # filtered_signs = median_filter(signs, 9) # pick window size based on result. second arg is odd number.
