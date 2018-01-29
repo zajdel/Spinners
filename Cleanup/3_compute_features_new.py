@@ -3,6 +3,7 @@
 
 import sys
 import numpy as np
+import csv
 
 filename = sys.argv[1]
 # concentration = sys.argv[1]
@@ -62,7 +63,7 @@ def compute_features(trace, window=900):
                 avg_cw = (temp0, temp1)
             count = 1
             prev_direction = i
-    features["bias"] = total / 900
+    features["bias"] = total / window
     features["cw"] = avg_cw[0]
     features["ccw"] = avg_ccw[0]
     features["switch"] = switch
