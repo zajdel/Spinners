@@ -15,6 +15,10 @@ out_name = out + '.csv'
 
 interval_bias = lambda s: np.sum((-np.array(s) + 1) / 2) / len(s)  # CCW / (CCW + CW); s is interval over which to compute bias, s is signs of rotation direction. NOTE: correct if cw is positive, ccw is negative.
 
+def moving_average(values, window=8):
+    weights = np.repeat(1.0, window)/window
+    sma = np.convolve(values, weights, 'valid')
+    return sma
 
 def compute_features(trace, window=900):
     # Input: trace is single bacterium raw time series
@@ -22,9 +26,11 @@ def compute_features(trace, window=900):
     # Output: time series of bias at all overlapping intervals of window-length.  (len: len(trace) - window)
 
     bias = []
-
+	
     # 1. Derivative of 1D signal. (Angular velocity) Use to get signs, which tell us CCW or CW.
-    conv = np.convolve([-1., 1], trace, mode='full')
+    ma_trace = moving_average(trace, 8) # 8*1/32 fps ~ 250 ms median filter window
+    conv = np.convolve([-1., 1], ma_trace, mode='full')
+	
     # Optionally:
     #       median_filtered_conv = median_filter(conv, 7) # pick window size based on result. second arg is odd number.
 
