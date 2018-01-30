@@ -51,10 +51,10 @@ def compute_features(trace, window=900):
 
     bias = []
 	
-    # 1. Derivative of 1D signal. (Angular velocity) Use to get signs, which tell us CCW or CW.
+    # 1. Derivative of 1al. (Angular velocity) Use to get signs, which tell us CCW or CW.
+    #unwrap = np.unwrap(trace*np.pi/180.0)*180/np.pi
     ma_trace = moving_average(trace, 8) # 8*1/32 fps ~ 250 ms median filter window
-    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='full')    
-    velocity = velocity[:-2]
+    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='valid')    
     d = hysteresis_threshold(velocity,0.6)
 	
     # Optionally:
@@ -74,31 +74,32 @@ def compute_features(trace, window=900):
 
     features = {}
     total = 0
-    avg_cw = (0,0)
-    avg_ccw = (0,0)
-    switch = 0
-    count = 0
+    cw_intervals = []
+    ccw_intervals = []
+    run = 1
+    n_switches = 0
     prev_direction = interval[0]
-    for i in interval:
-        total += (-i + 1) / 2
-        if i == prev_direction:
-            count += 1
+    
+    for k in range(1,len(interval)):
+        total += (-interval[k] + 1) / 2
+
+        # check if the run is continuing
+        if interval[k] == prev_direction:
+            run += 1
+        # otherwise, we have ourselves a switch!
         else:
-            switch += 1
-            if prev_direction == -1.0:
-                temp1 = avg_ccw[1] + 1
-                temp0 = (avg_ccw[0]*avg_ccw[1] + count) / temp1
-                avg_ccw = (temp0, temp1)
-            elif prev_direction == 1.0:
-                temp1 = avg_cw[1] + 1
-                temp0 = (avg_cw[0]*avg_cw[1] + count) / temp1
-                avg_cw = (temp0, temp1)
-            count = 1
-            prev_direction = i
+            n_switches += 1
+            if prev_direction == 1:
+                cw_intervals.append(run)
+            elif prev_direction == -1:
+                ccw_intervals.append(run)
+            run = 1
+            prev_direction = interval[k]
+
     features["bias"] = total / window
-    features["cw"] = avg_cw[0]
-    features["ccw"] = avg_ccw[0]
-    features["switch"] = switch
+    features["cw"] = np.average(cw_intervals)
+    features["ccw"] = np.average(ccw_intervals)
+    features["switch"] = n_switches
     return features
 
 
@@ -108,7 +109,7 @@ def compute_features_for_each_trace(status,traces):
     for s,trace in zip(status,traces):
 	    if (s==1):
              # unwrap and smooth the trace before computing the bias
-             # trace =smooth(np.unwrap(trace*np.pi/180.0),11)*180/np.pi;
+             #trace =smooth(np.unwrap(trace*np.pi/180.0),11)*180/np.pi;
              results = compute_features(trace, count)  # Set first and frames so that it's about 10 s of data.
              features["biases"].append(results["bias"])
              features["cw"].append(results["cw"])

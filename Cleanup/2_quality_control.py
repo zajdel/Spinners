@@ -32,7 +32,7 @@ def hysteresis_threshold(trace,rel=0.6):
     min = np.percentile(trace,2.5)
     tH = max - (np.absolute(max)+np.absolute(min))*rel
     tL = min + (np.absolute(max)+np.absolute(min))*rel
-    dir = np.arange(len(trace))
+    dir = np.zeros(len(trace))
     
     high = False
     for k in range(0,len(trace)):
@@ -64,8 +64,7 @@ def show_trace(counter):
     
     unwrapped = np.unwrap(np.asarray(trace[i]))
     ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms moving average filter window
-    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='full')    
-    velocity = velocity[:-2]
+    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='valid')    
     d = hysteresis_threshold(velocity,0.6)
     
     plt.xlabel('Frame', fontsize=20)
@@ -77,6 +76,7 @@ def show_trace(counter):
     elif type=="2":
         plt.plot(range(0,len(velocity)), velocity, 'r-',range(0,len(velocity)), d, 'b-')    
         plt.ylim((-2,2))
+        plt.xlim((0,1875))
     
     plt.grid(True, which='both')
 
