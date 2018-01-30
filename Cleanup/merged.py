@@ -26,15 +26,15 @@ def hysteresis_threshold(trace,rel=0.6):
     for k in range(0,len(trace)):
         if high:
             if trace[k]< tL:
-                dir[k] = -1.0
+                dir[k] = -1
             else:
-                dir[k] = 1.0
+                dir[k] = 1
                 high = False
         elif ~high:
             if trace[k] > tH:
-                dir[k] = 1.0
+                dir[k] = 1
             else:
-                dir[k] = -1.0
+                dir[k] = -1
                 high = True
             
     return dir
@@ -52,8 +52,8 @@ def compute_features(trace, window=900):
     bias = []
 	
     # 1. Derivative of 1al. (Angular velocity) Use to get signs, which tell us CCW or CW.
-    #unwrap = np.unwrap(trace*np.pi/180.0)*180/np.pi
-    ma_trace = moving_average(trace, 8) # 8*1/32 fps ~ 250 ms median filter window
+    unwrapped = np.unwrap(np.asarray(trace))
+    ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms median filter window
     velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='valid')    
     d = hysteresis_threshold(velocity,0.6)
 	
