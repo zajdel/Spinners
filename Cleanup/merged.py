@@ -15,9 +15,9 @@ count = int(sys.argv[5])
 
 interval_bias = lambda s: np.sum((-np.array(s) + 1) / 2) / len(s)  # CCW / (CCW + CW); s is interval over which to compute bias, s is signs of rotation direction. NOTE: correct if cw is positive, ccw is negative.
 
-def hysteresis_threshold(trace,rel=0.6):
-    max = np.percentile(trace,97.5)
-    min = np.percentile(trace,2.5)
+def hysteresis_threshold(trace,rel):
+    max = np.percentile(trace[:1875],99.0)
+    min = np.percentile(trace[:1875],1.0)
     tH = max - (np.absolute(max)+np.absolute(min))*rel
     tL = min + (np.absolute(max)+np.absolute(min))*rel
     dir = np.zeros(len(trace))
@@ -44,7 +44,7 @@ def moving_average(values, window=8):
     sma = np.convolve(values, weights, 'valid')
     return sma
 
-def compute_features(trace, window=900):
+def compute_features(trace, window, sensitivity):
     # Input: trace is single bacterium raw time series
     #       window is size of window over which we (locally) compute bias.
     # Output: time series of bias at all overlapping intervals of window-length.  (len: len(trace) - window)
@@ -55,7 +55,7 @@ def compute_features(trace, window=900):
     unwrapped = np.unwrap(np.asarray(trace))
     ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms median filter window
     velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='valid')    
-    d = hysteresis_threshold(velocity,0.6)
+    d = hysteresis_threshold(velocity,sensitivity)
 	
     # Optionally:
     #       median_filtered_conv = median_filter(conv, 7) # pick window size based on result. second arg is odd number.
@@ -107,10 +107,9 @@ def compute_features_for_each_trace(status,traces):
     features = {"biases":[],"cw":[], "ccw":[], "switch":[]}
 	# remove traces that have a status of 0 (rejected)
     for s,trace in zip(status,traces):
-	    if (s==1):
+	    if (s>0):
              # unwrap and smooth the trace before computing the bias
-             #trace =smooth(np.unwrap(trace*np.pi/180.0),11)*180/np.pi;
-             results = compute_features(trace, count)  # Set first and frames so that it's about 10 s of data.
+             results = compute_features(trace, count, s)  # Set first and frames so that it's about 10 s of data.
              features["biases"].append(results["bias"])
              features["cw"].append(results["cw"])
              features["ccw"].append(results["ccw"])
@@ -143,7 +142,7 @@ def graph(fts):
         plt.xlim(-10,0)
         c = 0
         for avg, std in plots[i]:
-            plt.errorbar(c_vals[conc[c]], avg, std)
+            plt.errorbar(c_vals[conc[c]], avg, std,fmt='--o',ecolor='b',c='b')
             c += 1
     plt.show()
 
