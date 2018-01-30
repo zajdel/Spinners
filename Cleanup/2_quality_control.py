@@ -35,7 +35,7 @@ def hysteresis_threshold(trace,rel):
     tL = min + (np.absolute(max)+np.absolute(min))*rel
     dir = np.zeros(len(trace))
     
-    high = False
+    high = True
     for k in range(0,len(trace)):
         if high:
             if trace[k]< tL:
