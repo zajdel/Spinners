@@ -76,7 +76,7 @@ def show_trace(counter):
     	
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
-    plt.title('Trace ({0}, {1})'.format(centers[i][0], centers[i][1]), fontsize=20)
+    plt.title('Trace ({0}, {1}): {2} of {3}'.format(centers[i][0], centers[i][1],counter,num_cells), fontsize=20)
     
     if type=="0":
         plt.plot(unwrapped, 'r-', lw=1)
