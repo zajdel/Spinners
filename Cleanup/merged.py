@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import csv
 import matplotlib.pyplot as plt
+import math
 
 path = sys.argv[1]
 conc = sys.argv[2].split(',')
@@ -82,10 +83,16 @@ def compute_features(trace, window, sensitivity):
     
     for k in range(1,len(interval)):
         total += (-interval[k] + 1) / 2
-
+		
         # check if the run is continuing
         if interval[k] == prev_direction:
             run += 1
+            # if we made it to the end, count this as an interval cut off at end
+            if k == len(interval)-1:
+                if prev_direction == 1:
+                    cw_intervals.append(run)
+                elif prev_direction == -1:
+                    ccw_intervals.append(run)			    
         # otherwise, we have ourselves a switch!
         else:
             n_switches += 1
@@ -97,8 +104,12 @@ def compute_features(trace, window, sensitivity):
             prev_direction = interval[k]
 
     features["bias"] = total / window
-    features["cw"] = np.average(cw_intervals)
-    features["ccw"] = np.average(ccw_intervals)
+    features["cw"] = np.nanmean(cw_intervals)*.032
+    features["ccw"] = np.nanmean(ccw_intervals)*.032
+    if math.isnan(features["cw"]):
+        features["cw"]=0
+    if math.isnan(features["ccw"]):
+        features["ccw"]=0	
     features["switch"] = n_switches
     return features
 
@@ -134,11 +145,15 @@ def graph(fts):
 
     plots = [biases, cws, ccws, switches]
     label = ["Average Biases", "Average Clockwise Time", "Average Counterclockwise Time", "Average Switches"]
+    ylimit = [[0.5,1.0],[0,30],[0,30],[0,100]]
+    ylabel = ["Bias","seconds","seconds","number"]
     c_vals = {"1m": -3,"100u": -4,"10u": -5,"1u": -6,"100n": -7, "control": -9}
     for i in range(0,4):
         plt.figure(i)
         plt.xlabel('Concentrations')
         plt.title(label[i])
+        plt.ylim(ylimit[i])
+        plt.ylabel(ylabel[i])
         plt.xlim(-10,0)
         c = 0
         for avg, std in plots[i]:
