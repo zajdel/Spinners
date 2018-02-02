@@ -148,7 +148,6 @@ def graph(fts):
         features = fts[pre]
         bias, cw, ccw, switch = features["biases"], features["cw"], features["ccw"], features["switch"]
         biases.append((np.average(bias), np.std(bias)/(np.sqrt(len(bias)))))
-        print len(bias)
         cws.append((np.average(cw), np.std(cw)/(np.sqrt(len(cw)))))
         ccws.append((np.average(ccw), np.std(ccw)/(np.sqrt(len(ccw)))))
         switches.append((np.average(switch), np.std(switch)/(np.sqrt(len(switch)))))
@@ -247,38 +246,41 @@ def graph_conc(features):
     k=0
     c_vals = {"1m": -3,"100u": -4,"10u": -5,"1u": -6,"100n": -7, "control": -9}
     colors = ['b', 'g', 'r']
-    NN = [937, 1875, 3750]
+    NN = (937, 1875, 3750)
     for nn in NN:
-        feats = features[nn]
-        b = feats["biases"]
         plt.figure(i)
         plt.xlabel('Frames')
         plt.title("Biases time series")
         for con in conc:
+            feats = features[con]
+            b = feats["biases"]
             avg, std = b[nn]
             plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         i+=1
-        c1 = feats["cw"]
         plt.figure(i)
         plt.xlabel('Frames')
         plt.title("Clockwise time series")
         for con in conc:
+            feats = features[con]
+            c1 = feats["cw"]
             avg, std = c1[nn]
             plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         i+=1
-        c2 = feats["ccw"]
         plt.figure(i)
         plt.xlabel('Frames')
         plt.title("Counterclockwise time series")
         for con in conc:
+            feats = features[con]
+            c2 = feats["ccw"]
             avg, std = c2[nn]
             plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         i+=1
-        s = feats["switch"]
         plt.figure(i)
         plt.xlabel('Frames')
         plt.title("Switches time series")
         for con in conc:
+            feats = features[con]
+            s = feats["switch"]
             avg, std = s[nn]
             plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         i+=1
@@ -355,8 +357,8 @@ if __name__ == '__main__':
         out.close()
     graph(fts)
     combined_feats = combine_features_over_time(fts_time,30)
-    graph_time(combined_feats)
-    #graph_conc(combined_feats)
+    #graph_time(combined_feats)
+    graph_conc(combined_feats)
 
     # np.save("biases/" + concentration, result)
 
