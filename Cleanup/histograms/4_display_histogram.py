@@ -78,18 +78,18 @@ for k in range(0,len(csv)):
 
     plt.subplot(223)
     params = norm.fit(data[:,3]/times[k])
-    n,bins,patches = plt.hist(data[:,3]/times[k], bins=40, range=(0,3), normed=True,facecolor=colors[k], alpha=0.2)
+    n,bins,patches = plt.hist(data[:,3]/times[k], bins=40, range=(0,200), normed=True,facecolor=colors[k], alpha=0.2)
     for item in patches:
         item.set_height(item.get_height()/sum(n))
-    plot_x = np.linspace(0,5,1000)
+    plot_x = np.linspace(0,200,1000)
     pdf_fitted = norm.pdf(plot_x,params[0],params[1])
     #l = plt.plot(plot_x,np.divide(pdf_fitted,sum(n)),colors[k]+'-',linewidth=2)
-    plt.xlabel(r'$f_N$', fontsize=20)
+    plt.xlabel(r'$N_s$', fontsize=20)
     plt.ylabel('Frequency', fontsize=20)
-    plt.xlim((0,3))
+    plt.xlim((0,200))
     plt.ylim((0,0.15))
     plt.errorbar(np.average(data[:,3]/times[k]),0.15/2,xerr=np.std(data[:,3]/times[k])/np.sqrt(len(data[:,3])/times[k]),fmt='-',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
     plt.axvline(x=np.average(data[:,3]/times[k]),c=colors[k],linewidth=2)
 	
-plt.suptitle('100 nM L-aspartate (N = 126)',fontsize=32)
+plt.suptitle('100 nM Aspartate (N = 126)',fontsize=32)
 plt.show()
