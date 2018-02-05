@@ -44,7 +44,7 @@ def peval(x, p):
 	
 def leufit(x, A, B, C):
     """4PL lgoistic equation."""
-    return A*np.power(x,2.0) + B*x + C
+    return A*np.power(x,2) + B*x + C
 
 def leuresiduals(p, y, x):
     """Deviations of data from fitted 4PL curve"""
@@ -211,6 +211,7 @@ def graph_time(features):
     shapes = ['o', '^', 's', 'x']
     cons = ['1 mM','10 '+u'\u03BC'+'M','100 nM','0 M']
     for con in conc:
+        # print the parameters and rmse for B
         plt.figure(1)
         plt.subplot(121)
         feats = features[con]
@@ -219,20 +220,33 @@ def graph_time(features):
         plt.ylabel(r'$B$')
         xfit = []
         yfit = []
+        r_av = 0		
         for n in N:
             avg, std = b[n]
+            r_av += avg
             xfit.append(n*.032)
             yfit.append(avg)
             plt.errorbar(n*.032, avg, yerr=std,fmt=shapes[k],ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-        m,b = np.polyfit(xfit, yfit, 1)
-        print ('B',con,m,b)
+        r_av /= len(N)
+        m,b1 = np.polyfit(xfit, yfit, 1)
+        r_s = 0
+        r_m = 0
+        for n in N:
+            avg, std = b[n]
+            r_s += (n*.032*m + b1 - avg)**2
+            r_m += (avg - r_av)**2
+        print ('B: ',con,' m = ',m,' b = ',b1)
+        print("B RMS " + con + " is " + str(np.sqrt(r_s/len(N)))+'\n')
         x_plot = np.linspace(0,120,1000)
-        plt.plot(x_plot,np.add(np.multiply(x_plot,m),b),c=colors[k],linewidth=2,label=con)
+        plt.plot(x_plot,np.add(np.multiply(x_plot,m),b1),c=colors[k],linewidth=2,label=con)
         plt.ylim((0.50,1.0))
         plt.xlim(-2,122)
         handles = [mlines.Line2D((0,0.5),(1,0.5),lw=2,color=colors[kk],marker=shapes[kk]) for kk in range(0,len(colors))]
         labels= conc
         #plt.legend(handles, labels, loc=1, fontsize=16)
+		
+		
+		# CW and CCW
         i+=1
         c1 = feats["cw"]
         plt.figure(i)
@@ -248,6 +262,9 @@ def graph_time(features):
             avg, std = c2[n]
             plt.errorbar(n*.032, avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         i+=1
+
+		
+        # print the parameters and rmse for Ns
         plt.figure(1)
         s = feats["switch"]
         plt.subplot(122)
@@ -255,16 +272,26 @@ def graph_time(features):
         plt.ylabel(r'$N_s$')
         xfit = []
         yfit = []
+        r_av = 0		
         for n in N:
             avg, std = s[n]
+            r_av += avg
             xfit.append(n*.032)
             yfit.append(avg)
             plt.errorbar(n*.032, avg, yerr=std,fmt=shapes[k],ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-        m,b = np.polyfit(xfit, yfit, 1)
+        m,b1 = np.polyfit(xfit, yfit, 1)
+        r_av /= len(N)
+        r_s = 0
+        r_m = 0
+        for n in N:
+            avg, std = s[n]
+            r_s += (n*.032*m + b1 - avg)**2
+            r_m += (avg - r_av)**2
         x_plot = np.linspace(0,120,1000)
-        plt.plot(x_plot,np.add(np.multiply(x_plot,m),b),c=colors[k],linewidth=2)
+        plt.plot(x_plot,np.add(np.multiply(x_plot,m),b1),c=colors[k],linewidth=2)
         handles = [mlines.Line2D((0,0.5),(1,0.5),lw=2,color=colors[kk],marker=shapes[kk]) for kk in range(0,len(colors))]
-        print ('N',con,m,b)
+        print ('N: ',con,' m = ',m,' b = ',b1)
+        print("Ns RMS " + con + " is " + str(np.sqrt(r_s/len(N)))+'\n')
         labels= cons
         plt.legend(handles, labels, loc=2, fontsize=20,numpoints=1)
         plt.ylim(0,60)
@@ -279,6 +306,8 @@ def graph_time(features):
     plt.show()
 	
 def graph_conc(features):
+    fb = open('b_vs_c.csv','w')
+    fn = open('n_vs_c.csv','w')
     k=0
     c_vals = {"1m": -3,"100u": -4,"10u": -5,"1u": -6,"100n": -7, "control": -9}
     colors = ['b', 'g', 'r']
@@ -295,32 +324,62 @@ def graph_conc(features):
         plt.ylim((0.50,1.0))
         xfit = []
         yfit = []
+        r_av = 0		
         for con in conc:
             feats = features[con]
             b = feats["biases"]
             avg, std = b[nn]
+            r_av += avg
             xfit.append(math.pow(10,c_vals[con]))
             yfit.append(avg)
             plt.errorbar(math.pow(10,c_vals[con]), avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-
-        if chem=='asp':
+        r_av /= len(conc)
+        r_s = 0
+        r_m = 0
+        if chem=='asp':       
             plt.suptitle('Asp',fontsize=32)
             # Initial guess for parameters
             p0 = [0.5, 1, -6, 1]
             # Fit equation using least squares optimization
-            plsq,cov,infodict,mesg,ier = leastsq(residuals, p0, args=(yfit, np.log10(xfit)),full_output=True)
+            #plsq,cov,infodict,mesg,ier = leastsq(residuals, p0, args=(yfit, np.log10(xfit)),full_output=True)
             plsq= leastsq(residuals, p0, args=(yfit, np.log10(xfit)))
+            A=plsq[0][0]
+            B=plsq[0][1]
+            C=plsq[0][2]
+            D=plsq[0][3]			
+            for con in conc:
+                feats = features[con]
+                b = feats["biases"]
+                avg, std = b[nn]
+                cn = c_vals[con]
+                r_s += ((D + (A-D)/(1+math.pow(cn/C,B))) - avg)**2
+                r_m += (avg - r_av)**2
+            rmse = np.sqrt(r_s/len(conc))              
             x_plot = np.logspace(-9,-3,1000)		
             plt.semilogx(x_plot,peval(np.log10(x_plot),plsq[0]),c=colors[k],linewidth=2)
+            fb.write(str(A)+','+str(B)+','+str(C)+','+str(D)+','+str(rmse)+'\n')
+
         elif chem=='leu':
             plt.suptitle('Leu',fontsize=32)
             # Initial guess for parameters
             p0 = [1, 1,0.5]
             # Fit equation using least squares optimization
-            plsq,cov,infodict,mesg,ier = leastsq(leuresiduals, p0, args=(yfit, xfit),full_output=True)
+            #plsq,cov,infodict,mesg,ier = leastsq(leuresiduals, p0, args=(yfit, xfit),full_output=True)
             plsq= leastsq(leuresiduals, p0, args=(yfit, np.log10(xfit)))
+            A=plsq[0][0]
+            B=plsq[0][1]
+            C=plsq[0][2]
+            for con in conc:
+                feats = features[con]
+                b = feats["biases"]
+                avg, std = b[nn]
+                cn = c_vals[con]
+                r_s += (A*cn**2 + B*cn + C - avg)**2
+                r_m += (avg - r_av)**2
+            rmse = np.sqrt(r_s/len(conc))
             x_plot = np.logspace(-9,-3,1000)		
             plt.semilogx(x_plot,leupeval(np.log10(x_plot),plsq[0]),c=colors[k],linewidth=2)
+            fb.write(str(A)+','+str(B)+','+str(C)+','+str(rmse)+'\n')
 
         ax=plt.subplot(122)
         plt.xlabel('Concentration [M]')
@@ -328,25 +387,41 @@ def graph_conc(features):
         plt.ylabel(r'$N_s$')
         ax.set_xscale("log", nonposx='clip')    
         xfit = []
-        yfit = []		
+        yfit = []	
+        r_av = 0				
         for con in conc:
             feats = features[con]
             s = feats["switch"]
             avg, std = s[nn]
+            r_av += avg
             plt.errorbar(math.pow(10,c_vals[con]), avg, yerr=std,marker=shapes[k],ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
             #exclude control from fits (outlier)
             if con<>'control':
                 xfit.append(math.pow(10,c_vals[con]))
                 yfit.append(avg)
-        m,b = np.polyfit(np.log10(xfit), yfit, 1)
-        x_plot = np.logspace(-7,-3,1000)		
-        plt.plot(x_plot,np.add(np.multiply(np.log10(x_plot),m),b),c=colors[k],linewidth=2)
+        r_av /= len(conc)
+        m,b1 = np.polyfit(np.log10(xfit), yfit, 1)
+        x_plot = np.logspace(-7,-3,1000)
+        r_s = 0
+        r_m = 0
+        for con in conc:
+            feats = features[con]
+            s = feats["switch"]
+            avg, std = s[nn]
+            if con<>'control':
+                r_s += (m*c_vals[con] + b1 - avg)**2
+                r_m += (avg - r_av)**2
+        rmse = np.sqrt(r_s/len(conc))		
+        fn.write(str(m)+','+str(b1)+','+str(rmse)+'\n')
+        plt.plot(x_plot,np.add(np.multiply(np.log10(x_plot),m),b1),c=colors[k],linewidth=2)
         plt.ylim(0,60)
         handles = [mlines.Line2D((0,0.5),(1,0.5),lw=2,color=colors[kk],marker=shapes[kk]) for kk in range(0,len(colors))]
         labels= times
         #plt.legend(handles, labels, loc=1, fontsize=20,numpoints=1)
         k+=1
     plt.show()
+    fb.close()
+    fn.close()
 
 
 def compute_features_over_time(status, traces):
@@ -417,8 +492,8 @@ if __name__ == '__main__':
         out.close()
     graph(fts)
     combined_feats = combine_features_over_time(fts_time,30)
-    graph_time(combined_feats)
-    #graph_conc(combined_feats)
+    #graph_time(combined_feats)
+    graph_conc(combined_feats)
 
     # np.save("biases/" + concentration, result)
 
