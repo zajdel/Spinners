@@ -7,6 +7,8 @@ import csv
 import matplotlib.pyplot as plt
 import math
 import matplotlib.lines as mlines
+from scipy.optimize import leastsq
+import numpy.polynomial.polynomial as poly
 
 path = sys.argv[1]
 conc = sys.argv[2].split(',')
@@ -18,11 +20,42 @@ count=937
 N = [468, 937, 1875, 2812, 3750]
 
 font = {'family' : 'Myriad Pro',
-        'size'   : 16}
+        'size'   : 24}
 
 plt.rc('font', **font)
 
 interval_bias = lambda s: np.sum((-np.array(s) + 1) / 2) / len(s)  # CCW / (CCW + CW); s is interval over which to compute bias, s is signs of rotation direction. NOTE: correct if cw is positive, ccw is negative.
+
+	 # from http://people.duke.edu/~ccc14/pcfb/analysis.html
+def logistic4(x, A, B, C, D):
+    """4PL lgoistic equation."""
+    return ((A-D)/(1.0+((x/C)**B))) + D
+
+def residuals(p, y, x):
+    """Deviations of data from fitted 4PL curve"""
+    A,B,C,D = p
+    err = y-logistic4(x, A, B, C, D)
+    return err
+
+def peval(x, p):
+    """Evaluated value at x with current parameters."""
+    A,B,C,D = p
+    return logistic4(x, A, B, C, D)
+	
+def leufit(x, A, B, C):
+    """4PL lgoistic equation."""
+    return A*np.power(x,2.0) + B*x + C
+
+def leuresiduals(p, y, x):
+    """Deviations of data from fitted 4PL curve"""
+    A,B,C = p
+    err = y-leufit(x, A, B, C)
+    return err
+
+def leupeval(x, p):
+    """Evaluated value at x with current parameters."""
+    A,B,C = p
+    return leufit(x, A, B, C)
 
 def hysteresis_threshold(trace,rel):
     max = np.percentile(trace[:1875],99.0)
@@ -190,11 +223,13 @@ def graph_time(features):
             avg, std = b[n]
             xfit.append(n*.032)
             yfit.append(avg)
-            plt.errorbar(n*.032, avg, yerr=std,fmt=shapes[k],ecolor=colors[k],c=colors[k],capsize=5,markersize=5, elinewidth=2, capthick=2)
+            plt.errorbar(n*.032, avg, yerr=std,fmt=shapes[k],ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         m,b = np.polyfit(xfit, yfit, 1)
+        print ('B',con,m,b)
         x_plot = np.linspace(0,120,1000)
         plt.plot(x_plot,np.add(np.multiply(x_plot,m),b),c=colors[k],linewidth=2,label=con)
         plt.ylim((0.50,1.0))
+        plt.xlim(-2,122)
         handles = [mlines.Line2D((0,0.5),(1,0.5),lw=2,color=colors[kk],marker=shapes[kk]) for kk in range(0,len(colors))]
         labels= conc
         #plt.legend(handles, labels, loc=1, fontsize=16)
@@ -224,67 +259,92 @@ def graph_time(features):
             avg, std = s[n]
             xfit.append(n*.032)
             yfit.append(avg)
-            plt.errorbar(n*.032, avg, yerr=std,fmt=shapes[k],ecolor=colors[k],c=colors[k],capsize=5,markersize=5, elinewidth=2, capthick=2)
+            plt.errorbar(n*.032, avg, yerr=std,fmt=shapes[k],ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
         m,b = np.polyfit(xfit, yfit, 1)
         x_plot = np.linspace(0,120,1000)
         plt.plot(x_plot,np.add(np.multiply(x_plot,m),b),c=colors[k],linewidth=2)
         handles = [mlines.Line2D((0,0.5),(1,0.5),lw=2,color=colors[kk],marker=shapes[kk]) for kk in range(0,len(colors))]
+        print ('N',con,m,b)
         labels= cons
-        plt.legend(handles, labels, loc=1, fontsize=16)
+        plt.legend(handles, labels, loc=2, fontsize=20,numpoints=1)
         plt.ylim(0,60)
+        plt.xlim(-2,122)
         if chem=='asp':
-            plt.suptitle('Aspartate',fontsize=32)
+            plt.suptitle('Asp',fontsize=32)
         elif chem=='leu':
-            plt.suptitle('Leucine',fontsize=32)
+            plt.suptitle('Leu',fontsize=32)
         i+=1
         i = 4
         k+=1
     plt.show()
 	
 def graph_conc(features):
-    i = 4
     k=0
     c_vals = {"1m": -3,"100u": -4,"10u": -5,"1u": -6,"100n": -7, "control": -9}
     colors = ['b', 'g', 'r']
+    times = ['T = 30 sec','T = 60 sec','T = 120 sec']
+    shapes = ['o', '^', 's', 'x']
+
     NN = (937, 1875, 3750)
     for nn in NN:
-        plt.figure(i)
-        plt.xlabel('Frames')
-        plt.title("Biases time series")
+        ax=plt.subplot(121)
+        plt.xlabel('Concentration [M]')
+        plt.ylabel(r'$B$')
+        ax.set_xscale("log", nonposx='clip')
+        plt.xlim(0.5*math.pow(10,-9),1.5*math.pow(10,-3))
+        plt.ylim((0.50,1.0))
+        xfit = []
+        yfit = []
         for con in conc:
             feats = features[con]
             b = feats["biases"]
             avg, std = b[nn]
-            plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-        i+=1
-        plt.figure(i)
-        plt.xlabel('Frames')
-        plt.title("Clockwise time series")
-        for con in conc:
-            feats = features[con]
-            c1 = feats["cw"]
-            avg, std = c1[nn]
-            plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-        i+=1
-        plt.figure(i)
-        plt.xlabel('Frames')
-        plt.title("Counterclockwise time series")
-        for con in conc:
-            feats = features[con]
-            c2 = feats["ccw"]
-            avg, std = c2[nn]
-            plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-        i+=1
-        plt.figure(i)
-        plt.xlabel('Frames')
-        plt.title("Switches time series")
+            xfit.append(math.pow(10,c_vals[con]))
+            yfit.append(avg)
+            plt.errorbar(math.pow(10,c_vals[con]), avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
+
+        if chem=='asp':
+            plt.suptitle('Asp',fontsize=32)
+            # Initial guess for parameters
+            p0 = [0.5, 1, -6, 1]
+            # Fit equation using least squares optimization
+            plsq,cov,infodict,mesg,ier = leastsq(residuals, p0, args=(yfit, np.log10(xfit)),full_output=True)
+            plsq= leastsq(residuals, p0, args=(yfit, np.log10(xfit)))
+            x_plot = np.logspace(-9,-3,1000)		
+            plt.semilogx(x_plot,peval(np.log10(x_plot),plsq[0]),c=colors[k],linewidth=2)
+        elif chem=='leu':
+            plt.suptitle('Leu',fontsize=32)
+            # Initial guess for parameters
+            p0 = [1, 1,0.5]
+            # Fit equation using least squares optimization
+            plsq,cov,infodict,mesg,ier = leastsq(leuresiduals, p0, args=(yfit, xfit),full_output=True)
+            plsq= leastsq(leuresiduals, p0, args=(yfit, np.log10(xfit)))
+            x_plot = np.logspace(-9,-3,1000)		
+            plt.semilogx(x_plot,leupeval(np.log10(x_plot),plsq[0]),c=colors[k],linewidth=2)
+
+        ax=plt.subplot(122)
+        plt.xlabel('Concentration [M]')
+        plt.xlim(0.5*math.pow(10,-9),1.5*math.pow(10,-3))
+        plt.ylabel(r'$N_s$')
+        ax.set_xscale("log", nonposx='clip')    
+        xfit = []
+        yfit = []		
         for con in conc:
             feats = features[con]
             s = feats["switch"]
             avg, std = s[nn]
-            plt.errorbar(c_vals[con], avg, yerr=std,fmt='o',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-        i+=1
-        i = 4
+            plt.errorbar(math.pow(10,c_vals[con]), avg, yerr=std,marker=shapes[k],ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
+            #exclude control from fits (outlier)
+            if con<>'control':
+                xfit.append(math.pow(10,c_vals[con]))
+                yfit.append(avg)
+        m,b = np.polyfit(np.log10(xfit), yfit, 1)
+        x_plot = np.logspace(-7,-3,1000)		
+        plt.plot(x_plot,np.add(np.multiply(np.log10(x_plot),m),b),c=colors[k],linewidth=2)
+        plt.ylim(0,60)
+        handles = [mlines.Line2D((0,0.5),(1,0.5),lw=2,color=colors[kk],marker=shapes[kk]) for kk in range(0,len(colors))]
+        labels= times
+        #plt.legend(handles, labels, loc=1, fontsize=20,numpoints=1)
         k+=1
     plt.show()
 
@@ -357,8 +417,8 @@ if __name__ == '__main__':
         out.close()
     graph(fts)
     combined_feats = combine_features_over_time(fts_time,30)
-    #graph_time(combined_feats)
-    graph_conc(combined_feats)
+    graph_time(combined_feats)
+    #graph_conc(combined_feats)
 
     # np.save("biases/" + concentration, result)
 

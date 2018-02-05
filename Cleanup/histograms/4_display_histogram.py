@@ -57,7 +57,7 @@ for k in range(0,len(csv)):
     plt.errorbar(np.average(data[:,1]),0.4/2,xerr=np.std(data[:,1])/np.sqrt(len(data[:,1])),fmt='-',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
     plt.axvline(x=np.average(data[:,1]),c=colors[k],linewidth=2)
 
-    ax=plt.subplot(222)
+    ax=plt.subplot(223)
     params = expon.fit(data[:,2])
     n,bins,patches = plt.hist(data[:,2], bins=40, range=(0,tau_range), normed=True,facecolor=colors[k], alpha=0.2)
     for item in patches:
@@ -73,12 +73,12 @@ for k in range(0,len(csv)):
     plt.axvline(x=np.average(data[:,2]),c=colors[k],linewidth=2)
 	
     handles = [Rectangle((0,0),1,1,color=c,alpha=0.3,ec="k") for c in colors[0:3]]
-    labels= ["30 sec","60 sec", "120 sec"]
+    labels= ["T = 30 sec","T = 60 sec", "T = 120 sec"]
     plt.legend(handles, labels, fontsize=16)
 
-    plt.subplot(223)
-    params = norm.fit(data[:,3]/times[k])
-    n,bins,patches = plt.hist(data[:,3]/times[k], bins=40, range=(0,200), normed=True,facecolor=colors[k], alpha=0.2)
+    plt.subplot(222)
+    params = norm.fit(data[:,3])
+    n,bins,patches = plt.hist(data[:,3], bins=40, range=(0,200), normed=True,facecolor=colors[k], alpha=0.2)
     for item in patches:
         item.set_height(item.get_height()/sum(n))
     plot_x = np.linspace(0,200,1000)
@@ -87,9 +87,9 @@ for k in range(0,len(csv)):
     plt.xlabel(r'$N_s$', fontsize=20)
     plt.ylabel('Frequency', fontsize=20)
     plt.xlim((0,200))
-    plt.ylim((0,0.15))
-    plt.errorbar(np.average(data[:,3]/times[k]),0.15/2,xerr=np.std(data[:,3]/times[k])/np.sqrt(len(data[:,3])/times[k]),fmt='-',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
-    plt.axvline(x=np.average(data[:,3]/times[k]),c=colors[k],linewidth=2)
+    plt.ylim((0,0.2))
+    plt.errorbar(np.average(data[:,3]),0.15/2,xerr=np.std(data[:,3])/np.sqrt(len(data[:,3])),fmt='-',ecolor=colors[k],c=colors[k],capsize=5, elinewidth=2, capthick=2)
+    plt.axvline(x=np.average(data[:,3]),c=colors[k],linewidth=2)
 	
-plt.suptitle('100 nM Aspartate (N = 126)',fontsize=32)
+plt.suptitle('100 nM Asp (N = 126)',fontsize=32)
 plt.show()
