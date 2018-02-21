@@ -203,35 +203,35 @@ for center in selected_points:
 
     # add wrapped trace to CSV output
     # Prepend center_x, center_y, -1 (status unverified)
-    wrapped_traces.append(np.append([center[0], center[1]], np.append([-1], trace)))
+    wrapped_traces.append(np.append([center[0], center[1]], np.append([-1, -1], trace)))
 
     # unwrap trace and apply 1D median filter (default kernel size 3)
-    unwrapped = medfilt(np.unwrap(np.asarray(trace[2:])))
-
-    plt.xlabel('Frame', fontsize=20)
-    plt.ylabel('Angle', fontsize=20)
-    plt.title('Trace ({0}, {1})'.format(center[0], center[1]), fontsize=20)
-    plt.plot(unwrapped, 'r-', lw=1)
-    plt.grid(True, which='both')
-    plt.show()
+    # unwrapped = medfilt(np.unwrap(np.asarray(trace[2:])))
+    #
+    # plt.xlabel('Frame', fontsize=20)
+    # plt.ylabel('Angle', fontsize=20)
+    # plt.title('Trace ({0}, {1})'.format(center[0], center[1]), fontsize=20)
+    # plt.plot(unwrapped, 'r-', lw=1)
+    # plt.grid(True, which='both')
+    # plt.show()
 
     # Calculate speed from trace
-    speed = []
-    for i in range(unwrapped.shape[0]):
-        indices = []
-        angs = []
-        for j in range(i - 1, i + 2):
-            if 0 <= j < unwrapped.shape[0]:
-                indices.append(j)
-                angs.append(unwrapped[j])
-        slope = linregress(indices, angs)[0]
-        speed.append(slope)
-
-    plt.xlabel('Frame', fontsize=20)
-    plt.ylabel('Speed', fontsize=20)
-    plt.title('Speed ({0}, {1})'.format(center[0], center[1]), fontsize=20)
-    plt.plot(medfilt(speed), 'r-', lw=1)
-    plt.grid(True, which='both')
-    plt.show()
+    # speed = []
+    # for i in range(unwrapped.shape[0]):
+    #     indices = []
+    #     angs = []
+    #     for j in range(i - 1, i + 2):
+    #         if 0 <= j < unwrapped.shape[0]:
+    #             indices.append(j)
+    #             angs.append(unwrapped[j])
+    #     slope = linregress(indices, angs)[0]
+    #     speed.append(slope)
+    #
+    # plt.xlabel('Frame', fontsize=20)
+    # plt.ylabel('Speed', fontsize=20)
+    # plt.title('Speed ({0}, {1})'.format(center[0], center[1]), fontsize=20)
+    # plt.plot(medfilt(speed), 'r-', lw=1)
+    # plt.grid(True, which='both')
+    # plt.show()
 
 np.savetxt(fname + ".csv", np.asarray(wrapped_traces), fmt=','.join(["%.4f"] * 2 + ["%i"] + ["%.4f"] * num_frames))

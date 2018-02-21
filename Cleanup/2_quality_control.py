@@ -7,12 +7,14 @@ from matplotlib.widgets import Slider
 fname1 = sys.argv[1]
 fname2 = sys.argv[2]
 type = sys.argv[3] # if type == 0, show trace graphs, if type == 1, show reconstructed cells overlaid on actual video
-                   # if type == 2, show velocity graph processed from trace graph
+# if type == 2, show velocity graph processed from trace graph
 dataname = fname1 + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
 num_cells = data.shape[0]
 # Status code: -1: unverified, 0: verified - bad, 1: verified - good
 centers, status, trace = np.hsplit(data, np.array([2, 3]))
+if status.shape[1] == 1:
+    status = np.hstack((status, status))
 
 # tifname = fname2 + '.tif'
 # raw_frames = pims.TiffStack(tifname, as_grey=False)
@@ -21,83 +23,91 @@ centers, status, trace = np.hsplit(data, np.array([2, 3]))
 num_subplots = 9
 num_frames = data.shape[1]
 radius = 6
-sens = 0.6
+sens = (0.6, 0.6)
+
 
 def moving_average(values, window=8):
     weights = np.repeat(1.0, window)/window
     sma = np.convolve(values, weights, 'valid')
     return sma
-    
-def hysteresis_threshold(trace,rel):
-    max = np.percentile(trace[:1875],99.0)
-    min = np.percentile(trace[:1875],1.0)
-    tH = max - (np.absolute(max)+np.absolute(min))*rel
-    tL = min + (np.absolute(max)+np.absolute(min))*rel
+
+
+def hysteresis_threshold(trace, rel1, rel2):
+    max = np.percentile(trace[:1875], 99.0)
+    min = np.percentile(trace[:1875], 1.0)
+    tH = max - (np.absolute(max) + np.absolute(min)) * rel1
+    tL = min + (np.absolute(max) + np.absolute(min)) * rel2
     dir = np.zeros(len(trace))
-    
+
     high = True
-    for k in range(0,len(trace)):
+    for k in range(0, len(trace)):
         if high:
-            if trace[k]< tL:
+            if trace[k] < tL:
                 dir[k] = -1
             else:
                 dir[k] = 1
                 high = False
-        elif ~high:
+        else:
             if trace[k] > tH:
                 dir[k] = 1
             else:
                 dir[k] = -1
                 high = True
-            
+
     return dir
+
 
 def show_trace(counter):
     fig, ax = plt.subplots()
 
     def record_yes(event):
-        status[counter] = s_sensitivity.val
+        print(sens)
+        status[counter] = sens
         plt.close()
 
     def record_no(event):
-        status[counter] = 0
+        status[counter] = (0, 0)
         plt.close()
-    
+
     def update_sensitivity(val):
-        sens = s_sensitivity.val
-        d = hysteresis_threshold(velocity,sens)
+        global sens
+        sens = (s_sensitivity1.val, s_sensitivity2.val)
+        d = hysteresis_threshold(velocity, *sens)
         f1.set_ydata(d)
         fig.canvas.draw_idle()
 
     unwrapped = np.unwrap(np.asarray(trace[i]))
     ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms moving average filter window
-    velocity = np.convolve([-0.5,0.0,0.5], ma_trace, mode='valid')    
-    d = hysteresis_threshold(velocity,sens)
-    	
+    velocity = np.convolve([-0.5, 0.0, 0.5], ma_trace, mode='valid')
+    d = hysteresis_threshold(velocity, *sens)
+
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
-    plt.title('Trace ({0}, {1}): {2} of {3}'.format(centers[i][0], centers[i][1],counter,num_cells), fontsize=20)
-    
-    if type=="0":
+    plt.title('Trace ({0}, {1}): {2} of {3}'.format(centers[i][0], centers[i][1], counter + 1, num_cells), fontsize=20)
+
+    if type == "0":
         plt.plot(unwrapped, 'r-', lw=1)
-    elif type=="2":
-        #f1=plt.plot(range(0,len(velocity)), velocity, 'r-',range(0,len(velocity)), d, 'b-')    
-        f1, = plt.plot(range(0,len(velocity)), d, 'b-')
-        plt.plot(range(0,len(velocity)), velocity, 'r-')
-        plt.ylim((-2,2))
-        plt.xlim((0,1875))
-    
+    elif type == "2":
+        # f1=plt.plot(range(0,len(velocity)), velocity, 'r-',range(0,len(velocity)), d, 'b-')
+        f1, = plt.plot(range(0, len(velocity)), d, 'b-')
+        plt.plot(range(0, len(velocity)), velocity, 'r-')
+        plt.ylim((-2, 2))
+        plt.xlim((0, 1875))
+
     plt.grid(True, which='both')
 
     b_yes = Button(fig.add_axes([0.65, 0.9, 0.1, 0.03]), 'Yes')
     b_no = Button(fig.add_axes([0.80, 0.9, 0.1, 0.03]), 'No')
     b_yes.on_clicked(record_yes)
     b_no.on_clicked(record_no)
-    
-    s_sensitivity = Slider(fig.add_axes([0.20, 0.15, 0.65, 0.03]),'Sensitivity', 0.0, 1.0, valinit=0.6)
-    s_sensitivity.on_changed(update_sensitivity)
+
+    s_sensitivity1 = Slider(fig.add_axes([0.20, 0.15, 0.65, 0.03]), 'Sensitivity HIGH', 0.0, 1.0, valinit=0.6)
+    s_sensitivity2 = Slider(fig.add_axes([0.20, 0.1, 0.65, 0.03]), 'Sensitivity LOW', 0.0, 1.0, valinit=0.6)
+    s_sensitivity1.on_changed(update_sensitivity)
+    s_sensitivity2.on_changed(update_sensitivity)
 
     plt.show()
+
 
 def animate_frames_overlay(counter):
     fig, ax = plt.subplots(3, 3)
@@ -110,7 +120,7 @@ def animate_frames_overlay(counter):
         plt.close()
 
     def record_no(event):
-        status[counter] = 0
+        status[counter] = (0, 0)
         plt.close()
 
     b_yes = Button(fig.add_axes([0.605, 0.9, 0.1, 0.03]), 'Yes')
@@ -150,4 +160,4 @@ for i in range(num_cells):
     elif type == "1":
         animate_frames_overlay(i)
 
-np.savetxt(fname1 + "_checked.csv", np.asarray(np.hstack((centers, status, trace))), fmt=','.join(["%.4f"] * centers.shape[1] + ["%.4f"] + ["%.4f"] * trace.shape[1]))
+np.savetxt(fname1 + "_checked.csv", np.asarray(np.hstack((centers, status, trace))), fmt=','.join(["%.4f"] * centers.shape[1] + ["%.4f"] + ["%.4f"] + ["%.4f"] * trace.shape[1]))
