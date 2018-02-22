@@ -37,42 +37,6 @@ mpl.rc('image', cmap='gray')
 
 concentrations = ['100nM', '1uM', '10uM', '100uM', '1mM', 'MotMed']
 
-# Format strings as CONCENTRATION/CONCENTRATION_STREAMNAME.tif
-# This assumes entire data set is for one amino acid. You could add in concentrations list leu100nM, ser100nM (and change paths accordingly) to aggregate multiple amino acids.
-# paths = {
-# '1mM': [
-#     '1mM/1mM_Stream2_serine1milmol3msexposure_lampv7_55fps.tif',
-#     '1mM/1mM_Stream3_serine1milmol3msexposure_lampv7_55fps.tif', # move to correct folder
-#     '1mM/1mM_Stream133wssecondsafter_serine1milmol3msexposure_lampv7_55fps.tif'],
-# '1uM' : [
-#     '1uM/1uM_3ms_LV12_Stream0.tif',
-#     '1uM/1uM_3ms_LV12_Stream1.tif',
-#     '1uM/1uM_3ms_LV12_Stream2.tif'
-#     ],
-# '10uM' : [
-#     '10uM/10uM_3ms_LV12_Stream0.tif',
-#     '10uM/10uM_3ms_LV12_Stream1.tif',
-#     '10uM/10uM_3ms_LV12_Stream2.tif'
-#     ],
-# '100nM' : [
-#     '100nM/100nM_3ms_LV12_Stream0.tif',
-#     '100nM/100nM_3ms_LV12_Stream1.tif',
-#     '100nM/100nM_3ms_LV12_Stream2.tif'
-#     ],
-# '100uM' : [
-#     '100uM/100uM_3ms_LV12_Stream0.tif',
-#     '100uM/100uM_3ms_LV12_Stream1.tif',
-#     '100uM/100uM_3ms_LV12_Stream2.tif'
-#     ],
-# 'MotMed' : [
-#     'MotMed/MotMed_3ms_LV12_Stream0.tif',
-#     'MotMed/MotMed_Stream1_motmed3msexposure_lampv7_55fps.tif',
-#     'MotMed/MotMed_Stream2_motmed3msexposure_lampv7_55fps.tif', # actually in 1mM, move to correct folder
-#     'MotMed/MotMed_3ms_LV12_Stream1.tif',
-#     'MotMed/MotMed_3ms_LV12_Stream2.tif'
-#     ]
-# }
-
 # for Leucine
 paths = {
     '1mM': [

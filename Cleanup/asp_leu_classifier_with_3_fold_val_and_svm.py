@@ -1,8 +1,7 @@
 import numpy as np
-import numpy as np
 import itertools
 import sys
-from sklearn.model_selection import train_test_split
+#from sklearn.model_selection import train_test_split
 from sklearn import svm
 import sklearn.metrics
 from sklearn.metrics import confusion_matrix
@@ -30,7 +29,6 @@ def plot_confusion_matrix(cm, classes,
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
- #   plt.colorbar()
     plt.clim((0,40))
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
@@ -142,13 +140,6 @@ for k in range(3):
     Y_pred = clf.predict(X_val)
     cnf_matrix+=confusion_matrix(Y_val,Y_pred)
 
-# plt.figure(figsize=(4,4))
-# cnf_matrix[0,0] = 34
-# cnf_matrix[0,1] = 11
-# cnf_matrix[1,0] = 4
-# cnf_matrix[0,0] = 41
-
-#cnf_matrix = ((26,10,4),(8,26,6),(2,7,31))
 plot_confusion_matrix(cnf_matrix,classes=['Leu','Asp'])
 print("SVM 3-fold subset accuracy " + str(s/3))
 plt.show()

@@ -1,13 +1,14 @@
 from utilities import *
-#  Ex. python 2_quality_control.py 100nM_leu100n_1 [Centers + Code + Trace in CSV] 100nM_leu100n_1 [Original TIF] 0 [Quality Control Type]
+#  Ex. python 2_quality_control.py 1mM_asp1
 from matplotlib import animation
 from matplotlib.widgets import Button
 from matplotlib.widgets import Slider
 
-fname1 = sys.argv[1]
-fname2 = sys.argv[2]
-type = sys.argv[3] # if type == 0, show trace graphs, if type == 1, show reconstructed cells overlaid on actual video
-# if type == 2, show velocity graph processed from trace graph
+fname1 = sys.argv[1] # filename of csv
+#fname2 = sys.argv[2]
+#type = sys.argv[3] # if type == 0, show trace graphs, if type == 1, show reconstructed cells overlaid on actual video
+# if type == 2, show velocity graph processed from trace graph'
+type = "2"
 dataname = fname1 + '.csv'
 data = np.loadtxt(dataname, delimiter=",")
 num_cells = data.shape[0]
@@ -16,14 +17,11 @@ centers, status, trace = np.hsplit(data, np.array([2, 3]))
 if status.shape[1] == 1:
     status = np.hstack((status, status))
 
-# tifname = fname2 + '.tif'
-# raw_frames = pims.TiffStack(tifname, as_grey=False)
-# frames = np.array(raw_frames[0], dtype=np.uint8)
-
 num_subplots = 9
 num_frames = data.shape[1]
 radius = 6
-sens = (0.6, 0.6)
+
+thresh = (-1, 1)
 
 
 def moving_average(values, window=8):
@@ -32,37 +30,29 @@ def moving_average(values, window=8):
     return sma
 
 
-def hysteresis_threshold(trace, rel1, rel2):
-    max = np.percentile(trace[:1875], 99.0)
-    min = np.percentile(trace[:1875], 1.0)
-    tH = max - (np.absolute(max) + np.absolute(min)) * rel1
-    tL = min + (np.absolute(max) + np.absolute(min)) * rel2
-    dir = np.zeros(len(trace))
+def hysteresis_threshold(tr, thresh_high, thresh_low):
+    direction = np.zeros(len(tr))
+    prev_direction = 1
 
-    high = True
-    for k in range(0, len(trace)):
-        if high:
-            if trace[k] < tL:
-                dir[k] = -1
-            else:
-                dir[k] = 1
-                high = False
+    for k in range(0, len(tr)):
+        if tr[k] < thresh_low:
+            direction[k] = -1
+            prev_direction = -1
+        elif tr[k] > thresh_high:
+            direction[k] = 1
+            prev_direction = 1
         else:
-            if trace[k] > tH:
-                dir[k] = 1
-            else:
-                dir[k] = -1
-                high = True
+            direction[k] = prev_direction
 
-    return dir
+    return direction
 
 
 def show_trace(counter):
     fig, ax = plt.subplots()
 
     def record_yes(event):
-        print(sens)
-        status[counter] = sens
+        print(thresh)
+        status[counter] = thresh
         plt.close()
 
     def record_no(event):
@@ -70,16 +60,24 @@ def show_trace(counter):
         plt.close()
 
     def update_sensitivity(val):
-        global sens
-        sens = (s_sensitivity1.val, s_sensitivity2.val)
-        d = hysteresis_threshold(velocity, *sens)
-        f1.set_ydata(d)
+        global thresh
+        thresh_high = s_high_thresh.val
+        thresh_low = s_low_thresh.val
+        thresh = (thresh_high,thresh_low)
+        dd = hysteresis_threshold(velocity, *thresh)
+        f1.set_ydata(dd)
+        f2.set_ydata((thresh_high, thresh_high))
+        f3.set_ydata((thresh_low, thresh_low))
         fig.canvas.draw_idle()
 
     unwrapped = np.unwrap(np.asarray(trace[i]))
     ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms moving average filter window
     velocity = np.convolve([-0.5, 0.0, 0.5], ma_trace, mode='valid')
-    d = hysteresis_threshold(velocity, *sens)
+    vel_range = np.abs(np.nanmax(velocity)-np.nanmin(velocity))
+    thresh_high = np.nanmax(velocity) - vel_range * 0.50
+    thresh_low = np.nanmin(velocity) + vel_range * 0.25
+    thresh = (thresh_high, thresh_low)
+    d = hysteresis_threshold(velocity, *thresh)
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
@@ -91,6 +89,8 @@ def show_trace(counter):
         # f1=plt.plot(range(0,len(velocity)), velocity, 'r-',range(0,len(velocity)), d, 'b-')
         f1, = plt.plot(range(0, len(velocity)), d, 'b-')
         plt.plot(range(0, len(velocity)), velocity, 'r-')
+        f2, = plt.plot((0, len(velocity)), (thresh_high, thresh_high), 'g')
+        f3, = plt.plot((0, len(velocity)), (thresh_low, thresh_low), 'k')
         plt.ylim((-2, 2))
         plt.xlim((0, 1875))
 
@@ -101,10 +101,10 @@ def show_trace(counter):
     b_yes.on_clicked(record_yes)
     b_no.on_clicked(record_no)
 
-    s_sensitivity1 = Slider(fig.add_axes([0.20, 0.15, 0.65, 0.03]), 'Sensitivity HIGH', 0.0, 1.0, valinit=0.6)
-    s_sensitivity2 = Slider(fig.add_axes([0.20, 0.1, 0.65, 0.03]), 'Sensitivity LOW', 0.0, 1.0, valinit=0.6)
-    s_sensitivity1.on_changed(update_sensitivity)
-    s_sensitivity2.on_changed(update_sensitivity)
+    s_high_thresh = Slider(fig.add_axes([0.20, 0.15, 0.65, 0.03]), 'HIGH Threshold', -2.0, 2.0, valinit=thresh_high)
+    s_low_thresh = Slider(fig.add_axes([0.20, 0.1, 0.65, 0.03]), 'LOW Threshold', -2.0, 2.0, valinit=thresh_low)
+    s_high_thresh.on_changed(update_sensitivity)
+    s_low_thresh.on_changed(update_sensitivity)
 
     plt.show()
 

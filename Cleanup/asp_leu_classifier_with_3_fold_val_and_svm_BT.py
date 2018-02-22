@@ -149,17 +149,7 @@ for i in range(3):
     s += clf.score(X_val, Y_val)
     Y_pred = clf.predict(X_val)
     cnf_matrix+=confusion_matrix(Y_val,Y_pred)
-
-plt.figure(figsize=(4,4))
-cnf_matrix[0,0] = 26
-cnf_matrix[0,1] = 10
-cnf_matrix[0,2] = 4
-cnf_matrix[1,0] = 8
-cnf_matrix[1,1] = 26
-cnf_matrix[1,2] = 6
-cnf_matrix[2,0] = 2
-cnf_matrix[2,1] = 7
-cnf_matrix[2,2] = 31
+    print clf
 	
 print("SVM 3-fold subset accuracy " + str(s/3))
 plot_confusion_matrix(cnf_matrix,classes=['0 M','100 nM',r'1 $\mu$M'])
