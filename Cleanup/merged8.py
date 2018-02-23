@@ -14,8 +14,8 @@ path = sys.argv[1]
 conc = sys.argv[2].split(',')
 # concentration = sys.argv[1]
 file_num = int(sys.argv[3])
-#count = int(sys.argv[5])
-count=2812
+# count = int(sys.argv[5])
+count = 2812
 N = [468, 937, 1875, 2812, 3750]
 
 font = {'family' : 'Myriad Pro',
@@ -25,7 +25,7 @@ plt.rc('font', **font)
 
 interval_bias = lambda s: np.sum((-np.array(s) + 1) / 2) / len(s)  # CCW / (CCW + CW); s is interval over which to compute bias, s is signs of rotation direction. NOTE: correct if cw is positive, ccw is negative.
 
-	 # from http://people.duke.edu/~ccc14/pcfb/analysis.html
+# from http://people.duke.edu/~ccc14/pcfb/analysis.html
 def logistic4(x, A, B, C, D):
     """4PL lgoistic equation."""
     return ((A-D)/(1.0+((x/C)**B))) + D

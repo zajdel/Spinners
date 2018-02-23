@@ -63,7 +63,7 @@ def show_trace(counter):
         global thresh
         thresh_high = s_high_thresh.val
         thresh_low = s_low_thresh.val
-        thresh = (thresh_high,thresh_low)
+        thresh = (thresh_high, thresh_low)
         dd = hysteresis_threshold(velocity, *thresh)
         f1.set_ydata(dd)
         f2.set_ydata((thresh_high, thresh_high))
@@ -73,7 +73,7 @@ def show_trace(counter):
     unwrapped = np.unwrap(np.asarray(trace[i]))
     ma_trace = moving_average(unwrapped, 8) # 8*1/32 fps ~ 250 ms moving average filter window
     velocity = np.convolve([-0.5, 0.0, 0.5], ma_trace, mode='valid')
-    vel_range = np.abs(np.nanmax(velocity)-np.nanmin(velocity))
+    vel_range = np.abs(np.nanmax(velocity) - np.nanmin(velocity))
     thresh_high = np.nanmax(velocity) - vel_range * 0.50
     thresh_low = np.nanmin(velocity) + vel_range * 0.25
     thresh = (thresh_high, thresh_low)
@@ -89,8 +89,8 @@ def show_trace(counter):
         # f1=plt.plot(range(0,len(velocity)), velocity, 'r-',range(0,len(velocity)), d, 'b-')
         f1, = plt.plot(range(0, len(velocity)), d, 'b-')
         plt.plot(range(0, len(velocity)), velocity, 'r-')
-        f2, = plt.plot((0, len(velocity)), (thresh_high, thresh_high), 'g')
-        f3, = plt.plot((0, len(velocity)), (thresh_low, thresh_low), 'k')
+        f2, = plt.plot((0, len(velocity)), (thresh_high, thresh_high), 'g', lw=3)
+        f3, = plt.plot((0, len(velocity)), (thresh_low, thresh_low), 'k', lw=3)
         plt.ylim((-2, 2))
         plt.xlim((0, 1875))
 
@@ -116,7 +116,7 @@ def animate_frames_overlay(counter):
     time_text = fig.text(0.147, 0.92, '', horizontalalignment='left', verticalalignment='top')
 
     def record_yes(event):
-        status[counter] = sens
+        status[counter] = thresh
         plt.close()
 
     def record_no(event):
