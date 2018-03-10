@@ -5,14 +5,14 @@ from math import degrees, radians, sin, cos, floor
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import trackpy as tp
+# import trackpy as tp
 import scipy
 import pims
 from scipy import interpolate, signal
-import cv2
+# import cv2
 import time
 import xml.etree.ElementTree
-import tifffile
+# import tifffile
 from datetime import datetime
 import metamorph_timestamps
 from scipy.ndimage.filters import median_filter

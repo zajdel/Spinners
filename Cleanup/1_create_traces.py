@@ -18,8 +18,7 @@ raw_frames = pims.TiffStack(tifname, as_grey=False)
 # for i in range(len(frames)):
 #     bit_frames.append(convert_to_8bit(frames[i]))
 # frames = np.array(bit_frames)
-frames = np.array(raw_frames[0], dtype=np.uint8)
-print(frames.shape)
+frames = np.array(raw_frames, dtype=np.uint8)
 
 # Overwrite mode
 centers = []
@@ -234,4 +233,4 @@ for center in selected_points:
     # plt.grid(True, which='both')
     # plt.show()
 
-np.savetxt(fname + ".csv", np.asarray(wrapped_traces), fmt=','.join(["%.4f"] * 2 + ["%i"] + ["%.4f"] * num_frames))
+np.savetxt(fname + ".csv", np.asarray(wrapped_traces), fmt=','.join(["%.4f"] * 2 + ["%i"] * 2 + ["%.4f"] * num_frames))
