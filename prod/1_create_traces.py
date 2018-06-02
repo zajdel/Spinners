@@ -8,7 +8,7 @@ from Queue import Queue
 parser = argparse.ArgumentParser(description="Create traces of cells identified in a TIF and output to CSV.")
 parser.add_argument("source", help="source file [TIF]")
 parser.add_argument("dest", nargs="?", help="destination file [CSV]")
-parser.add_argument("-v", "--verbose", help="verbose output: display trace and speed plots for every cell", action="store_true")
+parser.add_argument("-v", "--verbose", help="verbose output: display trace for every cell", action="store_true")
 args = parser.parse_args()
 
 tif_name = args.source + '.tif'
@@ -177,25 +177,6 @@ for center in selected_points:
         plt.ylabel('Angle', fontsize=20)
         plt.title('Trace ({0}, {1})'.format(center[0], center[1]), fontsize=20)
         plt.plot(unwrapped, 'r-', lw=1)
-        plt.grid(True, which='both')
-        plt.show()
-
-        # Calculate speed from trace
-        speed = []
-        for i in range(unwrapped.shape[0]):
-            indices = []
-            angs = []
-            for j in range(i - 1, i + 2):
-                if 0 <= j < unwrapped.shape[0]:
-                    indices.append(j)
-                    angs.append(unwrapped[j])
-            slope = linregress(indices, angs)[0]
-            speed.append(slope)
-
-        plt.xlabel('Frame', fontsize=20)
-        plt.ylabel('Speed', fontsize=20)
-        plt.title('Speed ({0}, {1})'.format(center[0], center[1]), fontsize=20)
-        plt.plot(medfilt(speed), 'r-', lw=1)
         plt.grid(True, which='both')
         plt.show()
 

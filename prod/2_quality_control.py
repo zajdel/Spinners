@@ -1,25 +1,33 @@
 from utilities import *
 #  Ex. python 2_quality_control.py 1mM_asp1
 from math import sin, cos
+import pims
 from matplotlib.widgets import Button
 from matplotlib.widgets import Slider
 
 parser = argparse.ArgumentParser(description="Perform quality control on generated traces and/or determine thresholds for switches.")
 parser.add_argument("source", help="source file [CSV]")
-parser.add_argument("dest", nargs="?", help="destination file [CSV]")
 parser.add_argument("frames", nargs="?", help="frames [TIF]")
-parser.add_argument("type", type=int, choices=[0, 1, 2], default=2, help="type of quality control: 0 - show trace plots, 1 - show reconstructed cells overlaid on actual video, 2 - show velocity graph processed from trace graph")
+parser.add_argument("-d", "--dest", help="destination file [CSV]")
+parser.add_argument("-t", "--type", type=int, choices=[0, 1, 2], default=2, help="type of quality control: 0 - show trace plots, 1 - show reconstructed cells overlaid on actual video, 2 - show velocity graph processed from trace graph")
 args = parser.parse_args()
 
-if args.frames and args.type == 1:
+if not args.frames and args.type == 1:
     parser.error("frames required when using type 1")
 
-fname1 = args.source
-data_name = fname1 + '.csv'
+if args.frames:
+    tif_name = args.frames + '.tif'
+    raw_frames = pims.TiffStack(tif_name, as_grey=False)
+    frames = np.array(raw_frames, dtype=np.uint8)
+
+data_name = args.source + '.csv'
 data = np.loadtxt(data_name, delimiter=",", ndmin=2)
 num_cells = data.shape[0]
-# Status code: -1: unverified, 0: verified - bad, 1: verified - good
+# Status code: -1: unverified, 0: verified - bad, (x, y): verified - good with lower threshold x and upper threhsold y
 centers, status, trace = np.hsplit(data, np.array([2, 3]))
+# for backward compatibility when status did not track threshold
+if status.shape[1] == 1:
+    status = np.hstack((status, status))
 
 num_subplots = 9
 num_frames = data.shape[1]
@@ -29,7 +37,7 @@ thresh = (-1, 1)
 
 
 def moving_average(values, window=8):
-    weights = np.repeat(1.0, window)/window
+    weights = np.repeat(1.0, window) / window
     sma = np.convolve(values, weights, 'valid')
     return sma
 
@@ -78,6 +86,7 @@ def show_trace(counter):
     ma_trace = moving_average(unwrapped, 8)  # 8*1/32 fps ~ 250 ms moving average filter window
     velocity = np.convolve([-0.5, 0.0, 0.5], ma_trace, mode='valid')
     vel_range = np.abs(np.nanmax(velocity) - np.nanmin(velocity))
+    print(status[counter])
     if status[counter] != (0, 0) or status[counter] != (-1, -1):
         thresh_low, thresh_high = status[counter]
     else:
@@ -93,7 +102,6 @@ def show_trace(counter):
     if args.type == 0:
         plt.plot(unwrapped, 'r-', lw=1)
     elif args.type == 2:
-        # f1 = plt.plot(range(0,len(velocity)), velocity, 'r-', range(0,len(velocity)), d, 'b-')
         f1, = plt.plot(range(0, len(velocity)), d, 'b-')
         plt.plot(range(0, len(velocity)), velocity, 'r-')
         f2, = plt.plot((0, len(velocity)), (thresh_high, thresh_high), 'g', lw=3)
@@ -143,7 +151,7 @@ def animate_frames_overlay(counter):
             center_x, center_y = centers[counter].astype(np.int)
             ax[i % 3, i // 3].set_xlim(center_x - 10, center_x + 10)
             ax[i % 3, i // 3].set_ylim(center_y - 10, center_y + 10)
-            animations.append(ax[i % 3, i // 3].imshow(args.frames[num_frames / num_subplots * i, center_y - 10 : center_y + 10, center_x - 10 : center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10]))
+            animations.append(ax[i % 3, i // 3].imshow(frames[num_frames / num_subplots * i, center_y - 10 : center_y + 10, center_x - 10 : center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10]))
             x = [center_x + 0.5, center_x + radius * cos(trace[counter, num_frames / num_subplots * i]) + 0.5]
             y = [center_y - 0.5, center_y + radius * sin(trace[counter, num_frames / num_subplots * i]) - 0.5]
             cells.append(ax[i % 3, i // 3].plot(x, y)[0])
@@ -152,7 +160,7 @@ def animate_frames_overlay(counter):
     def animate(frame):
         for i in range(num_subplots):
             center_x, center_y = centers[counter].astype(np.int)
-            animations[i] = ax[i % 3, i // 3].imshow(args.frames[(num_frames / num_subplots * i) + frame % (num_frames / num_subplots), center_y - 10: center_y + 10, center_x - 10: center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10])
+            animations[i] = ax[i % 3, i // 3].imshow(frames[(num_frames / num_subplots * i) + frame % (num_frames / num_subplots), center_y - 10: center_y + 10, center_x - 10: center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10])
             # TODO: is this actually correct?
             # angle is calculated with respect to numpy array, i.e. arctan(x/y), so we correct with x = center_x + sin(theta) and y = center_y + cos(theta)
             x = [center_x + 0.5, center_x + radius * cos(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)]) + 0.5]
@@ -170,4 +178,4 @@ for i in range(num_cells):
     elif args.type == 1:
         animate_frames_overlay(i)
 
-np.savetxt(fname1 + "_checked.csv", np.hstack((centers, status, trace)), fmt=','.join(["%.4f"] * centers.shape[1] + ["%.4f"] + ["%.4f"] + ["%.4f"] * trace.shape[1]))
+np.savetxt(args.source + "_checked.csv", np.hstack((centers, status, trace)), fmt=','.join(["%.4f"] * centers.shape[1] + ["%.4f"] + ["%.4f"] + ["%.4f"] * trace.shape[1]))
