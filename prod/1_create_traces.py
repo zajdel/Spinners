@@ -1,7 +1,6 @@
 from __future__ import division
 from utilities import *
 #  Ex. python 1_create_traces.py 100u_leu1 [TIF]
-import pims
 from PIL import Image
 from Queue import Queue
 

@@ -7,6 +7,7 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from scipy.signal import medfilt
+import pims
 
 mpl.rc('figure', figsize=(16, 10))
 mpl.rc('image', cmap='gray')
