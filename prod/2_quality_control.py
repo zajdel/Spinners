@@ -24,14 +24,14 @@ data_name = args.source + '.csv'
 data = np.loadtxt(data_name, delimiter=",", ndmin=2)
 num_cells = data.shape[0]
 # Status code: -1: unverified, 0: verified - bad, (x, y): verified - good with lower threshold x and upper threhsold y
-centers, status, trace = np.hsplit(data, np.array([2, 3]))
+centers, status, trace = np.hsplit(data, np.array([2, 4]))
 # for backward compatibility when status did not track threshold
 if status.shape[1] == 1:
     status = np.hstack((status, status))
 
 num_subplots = 9
 num_frames = data.shape[1]
-radius = 6
+radius = 8
 
 thresh = (-1, 1)
 
@@ -82,12 +82,12 @@ def show_trace(counter):
         f3.set_ydata((thresh_low, thresh_low))
         fig.canvas.draw_idle()
 
-    unwrapped = np.unwrap(np.asarray(trace[i]))
+    unwrapped = np.unwrap(np.asarray(trace[counter]))
     ma_trace = moving_average(unwrapped, 8)  # 8*1/32 fps ~ 250 ms moving average filter window
     velocity = np.convolve([-0.5, 0.0, 0.5], ma_trace, mode='valid')
     vel_range = np.abs(np.nanmax(velocity) - np.nanmin(velocity))
     print(status[counter])
-    if status[counter] != (0, 0) or status[counter] != (-1, -1):
+    if not np.array_equal(status[counter], [0, 0]) or not np.array_equal(status[counter], [-1, -1]):
         thresh_low, thresh_high = status[counter]
     else:
         thresh_low = np.nanmin(velocity) + vel_range * 0.25
@@ -97,7 +97,7 @@ def show_trace(counter):
 
     plt.xlabel('Frame', fontsize=20)
     plt.ylabel('Angle', fontsize=20)
-    plt.title('Trace ({0}, {1}): {2} of {3}'.format(centers[i][0], centers[i][1], counter + 1, num_cells), fontsize=20)
+    plt.title('Trace ({0}, {1}): {2} of {3}'.format(centers[counter][0], centers[counter][1], counter + 1, num_cells), fontsize=20)
 
     if args.type == 0:
         plt.plot(unwrapped, 'r-', lw=1)
@@ -149,22 +149,21 @@ def animate_frames_overlay(counter):
     def init():
         for i in range(num_subplots):
             center_x, center_y = centers[counter].astype(np.int)
-            ax[i % 3, i // 3].set_xlim(center_x - 10, center_x + 10)
-            ax[i % 3, i // 3].set_ylim(center_y - 10, center_y + 10)
-            animations.append(ax[i % 3, i // 3].imshow(frames[num_frames / num_subplots * i, center_y - 10 : center_y + 10, center_x - 10 : center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10]))
-            x = [center_x + 0.5, center_x + radius * cos(trace[counter, num_frames / num_subplots * i]) + 0.5]
-            y = [center_y - 0.5, center_y + radius * sin(trace[counter, num_frames / num_subplots * i]) - 0.5]
+            ax[i % 3, i // 3].set_xlim(center_x - 8, center_x + 8)
+            ax[i % 3, i // 3].set_ylim(center_y - 8, center_y + 8)
+            animations.append(ax[i % 3, i // 3].imshow(frames[num_frames / num_subplots * i, center_y - 8:center_y + 8, center_x - 8:center_x + 8], aspect='equal', extent=[center_x - 8, center_x + 8, center_y - 8, center_y + 8]))
+            x = [center_x, center_x + radius * cos(trace[counter, num_frames / num_subplots * i])]
+            y = [center_y, center_y + radius * sin(trace[counter, num_frames / num_subplots * i])]
             cells.append(ax[i % 3, i // 3].plot(x, y)[0])
         time_text.set_text('Frame 0 of %d' % (num_frames / num_subplots))
 
     def animate(frame):
         for i in range(num_subplots):
             center_x, center_y = centers[counter].astype(np.int)
-            animations[i] = ax[i % 3, i // 3].imshow(frames[(num_frames / num_subplots * i) + frame % (num_frames / num_subplots), center_y - 10: center_y + 10, center_x - 10: center_x + 10], aspect='equal', extent=[center_x - 10, center_x + 10, center_y - 10, center_y + 10])
-            # TODO: is this actually correct?
+            animations[i] = ax[i % 3, i // 3].imshow(frames[(num_frames / num_subplots * i) + frame % (num_frames / num_subplots), center_y - 8:center_y + 8, center_x - 8:center_x + 8], aspect='equal', extent=[center_x - 8, center_x + 8, center_y - 8, center_y + 8])
             # angle is calculated with respect to numpy array, i.e. arctan(x/y), so we correct with x = center_x + sin(theta) and y = center_y + cos(theta)
-            x = [center_x + 0.5, center_x + radius * cos(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)]) + 0.5]
-            y = [center_y - 0.5, center_y + radius * sin(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)]) - 0.5]
+            x = [center_x, center_x + radius * cos(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)])]
+            y = [center_y, center_y + radius * sin(trace[counter, (num_frames / num_subplots * i) + frame % (num_frames / num_subplots)])]
             cells[i].set_data(x, y)
         time_text.set_text('Frame %d of %d' % (frame % 400, num_frames / num_subplots))
 

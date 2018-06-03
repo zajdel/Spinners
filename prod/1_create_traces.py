@@ -102,6 +102,9 @@ num_selected_points = len(selected_points)
 # *^*^*^*^*^  Post-Processing: Calculate Angle and Generate Traces  *^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
+# maximum distance a pixel can be to be considered part of cell defined by some chosen center
+MAX_DISTANCE = 8
+
 num_frames = len(frames)
 
 
@@ -135,7 +138,7 @@ def find_furthest_points(center, frame):
             if (p not in marked
                     and 0 <= p[0] < len(frames[frame][1])
                     and 0 <= p[1] < len(frames[frame][0])
-                    and euclidean_distance(center, p) <= 8
+                    and euclidean_distance(center, p) <= MAX_DISTANCE
                     and frames[frame][p[1], p[0]] == 0):
                 marked.add(p)
                 cell.add(p)

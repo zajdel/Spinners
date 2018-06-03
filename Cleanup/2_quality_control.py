@@ -10,7 +10,7 @@ fname1 = sys.argv[1] # filename of csv
 # if type == 2, show velocity graph processed from trace graph'
 type = "2"
 dataname = fname1 + '.csv'
-data = np.loadtxt(dataname, delimiter=",")
+data = np.loadtxt(dataname, delimiter=",", ndmin=2)
 num_cells = data.shape[0]
 # Status code: -1: unverified, 0: verified - bad, 1: verified - good
 centers, status, trace = np.hsplit(data, np.array([2, 3]))
@@ -106,6 +106,9 @@ def show_trace(counter):
     s_high_thresh.on_changed(update_sensitivity)
     s_low_thresh.on_changed(update_sensitivity)
 
+    figManager = plt.get_current_fig_manager()
+    figManager.window.showMaximized()
+
     plt.show()
 
 
@@ -160,4 +163,4 @@ for i in range(num_cells):
     elif type == "1":
         animate_frames_overlay(i)
 
-np.savetxt(fname1 + "_checked.csv", np.asarray(np.hstack((centers, status, trace))), fmt=','.join(["%.4f"] * centers.shape[1] + ["%.4f"] + ["%.4f"] + ["%.4f"] * trace.shape[1]))
+np.savetxt(fname1 + "_checked.csv", np.hstack((centers, status, trace)), fmt=','.join(["%.4f"] * centers.shape[1] + ["%.4f"] + ["%.4f"] + ["%.4f"] * trace.shape[1]))
