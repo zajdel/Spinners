@@ -14,7 +14,7 @@ tif_name = args.source + '.tif'
 raw_frames = pims.TiffStack(tif_name, as_grey=False)
 frames = np.array(raw_frames, dtype=np.uint8)
 
-# use and/or overwrite existing file
+# use (and/or overwrite) existing file
 centers = []
 if args.dest:
     csv_name = args.dest + '.csv'
@@ -25,6 +25,7 @@ if args.dest:
 # *^*^*^*^*^*^*^*^*^*^*^       Getting Mean Image       *^*^*^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
+# use only first 500 frames
 mean = np.mean(frames[0:500], axis=0)
 
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
@@ -42,7 +43,7 @@ frameview = new_frames
 # *^*^*^*^*^*^*^*^*^    Show Frames for Center Selection    *^*^*^*^*^*^*^*^*^*^*^*^
 # *^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^*^
 
-# need these for cycling through cells
+# cycle through first 50 frames
 N = 50
 show_frames = frameview[0:N]
 
