@@ -64,14 +64,29 @@ def hysteresis_threshold(tr, thresh_high, thresh_low):
     return direction
 
 
-#  thresholding algorithm using median, median absolute deviation, and asymmetric treatment of up and down signals
-#  adapted from https://stackoverflow.com/questions/22583391/peak-signal-detection-in-realtime-timeseries-data/43512887
-def threshold(y, lag, thresh_high, thresh_low, influence):
-    # median absolute deviation (MAD)
-    def mad(arr):
-        med = np.median(arr)
-        return np.median(np.abs(arr - med))
+def mad(arr):
+    """Computes the median absolute deviation (MAD) of an input array."""
+    med = np.median(arr)
+    return np.median(np.abs(arr - med))
 
+
+def threshold(y, lag, thresh_high, thresh_low, influence):
+    """Dynamically thresholds input data array.
+
+    Uses median, median absolute deviation, and asymmetric treatment of up and down signals to threshold input.
+    Essentially a parametrized peak-trough detection algorithm.
+    Args:
+        y: input data
+        lag: lag of moving window used to smooth data
+        thresh_high: number of median absolute deviations data point differs above median to threshold up
+        thresh_low: number of median absolute deviations data point differs below median to threshold down
+        influence: influence (between 0 and 1) of new signals on median and median absolute deviation
+
+    Returns:
+        signals, median filter, median absolute deviation filter
+
+    adapted from https://stackoverflow.com/questions/22583391/peak-signal-detection-in-realtime-timeseries-data/43512887
+    """
     signals = np.zeros(len(y))
     filtered_y = np.array(y)
     med_filter = [0] * len(y)
@@ -82,15 +97,15 @@ def threshold(y, lag, thresh_high, thresh_low, influence):
     for i in range(0, lag):
         signals[i] = 1 if y[i] > 0 else -1
     for i in range(lag, len(y)):
-        # UP: (y[i] - med_filter[i - 1] > threshold AND difference > 0.1) OR y[i] > 0.5 + min of three previous y[i]
-        if (y[i] - med_filter[i - 1] > thresh_high * mad_filter[i - 1] and y[i] - med_filter[i - 1] > 0.3) or y[i] - min(y[i - 3:i]) > 0.5:
+        # UP: (y[i] - med_filter[i - 1] > threshold AND difference > 0.1) OR y[i] > 0.5 + min of 4 previous y[i]
+        if (y[i] - med_filter[i - 1] > thresh_high * mad_filter[i - 1] and y[i] - med_filter[i - 1] > 0.3) or y[i] - min(y[i - 4:i]) > 0.4:
             signals[i] = 1
 
             filtered_y[i] = influence * y[i] + (1 - influence) * filtered_y[i - 1]
             med_filter[i] = np.median(filtered_y[(i-lag):i])
             mad_filter[i] = mad(filtered_y[(i-lag):i])
-        # DOWN: (y[i] - med_filter[i - 1] < threshold AND difference < -0.1) OR y[i] < -0.5 + max of three previous y[i]
-        elif (y[i] - med_filter[i - 1] < -thresh_low * mad_filter[i - 1] and y[i] - med_filter[i - 1] < -0.3) or y[i] - max(y[i - 3:i]) < -0.5:
+        # DOWN: (y[i] - med_filter[i - 1] < threshold AND difference < -0.1) OR y[i] < -0.5 + max of 4 previous y[i]
+        elif (y[i] - med_filter[i - 1] < -thresh_low * mad_filter[i - 1] and y[i] - med_filter[i - 1] < -0.3) or y[i] - max(y[i - 4:i]) < -0.4:
             signals[i] = -1
 
             filtered_y[i] = influence * y[i] + (1 - influence) * filtered_y[i - 1]
@@ -194,8 +209,8 @@ def show_trace(counter):
             f3.set_ydata((thresh_low, thresh_low))
             fig.canvas.draw_idle()
 
-        s_high_thresh = Slider(fig.add_axes([0.20, 0.15, 0.65, 0.03]), 'HIGH Threshold', -2.0, 2.0, valinit=thresh_high)
-        s_low_thresh = Slider(fig.add_axes([0.20, 0.1, 0.65, 0.03]), 'LOW Threshold', -2.0, 2.0, valinit=thresh_low)
+        s_high_thresh = Slider(fig.add_axes([0.20, 0.15, 0.65, 0.03]), 'Upper Threshold', -2.0, 2.0, valinit=thresh_high)
+        s_low_thresh = Slider(fig.add_axes([0.20, 0.1, 0.65, 0.03]), 'Lower Threshold', -2.0, 2.0, valinit=thresh_low)
         s_high_thresh.on_changed(update_sensitivity)
         s_low_thresh.on_changed(update_sensitivity)
         f1, = plt.plot(range(0, len(velocity)), d, 'b-')
@@ -233,4 +248,5 @@ for i in range(num_cells):
     else:
         show_trace(i)
 
+# output: center_x, center_y, status/upper threshold, status/lower threshold, trace
 np.savetxt(args.source + "_checked.csv", np.hstack((centers, status, trace)), fmt=','.join(["%.4f"] * 2 + ["%.4f"] * 2 + ["%.4f"] * trace.shape[1]))

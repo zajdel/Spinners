@@ -59,7 +59,7 @@ for center in centers:
 selected_points = set(tuple(map(tuple, centers)))
 
 
-# Error handling (find minimum intensity in mean in 5x5 area around selected center)
+# Error handling on press: find minimum intensity in mean in 5x5 area around selected center
 def on_press(event):
     if event.xdata and event.ydata:
         x, y = int(round(event.xdata)), int(round(event.ydata))
@@ -112,8 +112,8 @@ def euclidean_distance(p1, p2):
     return np.linalg.norm(np.asarray(p1) - np.asarray(p2))
 
 
-# use furthest point from center to calculate angle
 def find_furthest_points(center, frame):
+    """Given a center and a frame, computes furthest connected points to center with distance less than MAX_DISTANCE"""
     # get all points connected to center ("cell"), find furthest points
     nearest_pixel_to_center = (int(round(center[0])), int(round(center[1])))
     fringe = Queue()
@@ -149,6 +149,7 @@ def find_furthest_points(center, frame):
     return [p for p in cell if euclidean_distance(p, center) == max_dist]
 
 
+# calculate angle by using furthest point from center
 wrapped_traces = []
 for center in selected_points:
     ellipses = []
@@ -169,7 +170,7 @@ for center in selected_points:
         trace.append(ang)
 
     # add wrapped trace to CSV output
-    # prepend center_x, center_y, -1 (status unverified)
+    # prepend center_x, center_y, -1, -1 (unverified status)
     wrapped_traces.append(np.append([center[0], center[1]], np.append([-1, -1], trace)))
 
     if args.verbose:
@@ -183,4 +184,5 @@ for center in selected_points:
         plt.grid(True, which='both')
         plt.show()
 
+# output: center_x, center_y, status, status, trace
 np.savetxt(args.dest or args.source + ".csv", wrapped_traces, fmt=','.join(["%.4f"] * 2 + ["%i"] * 2 + ["%.4f"] * num_frames))
